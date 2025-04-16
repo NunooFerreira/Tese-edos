@@ -9,7 +9,6 @@ TOTAL_REQUESTS = 2     # Total requests to send
 CONCURRENCY_LEVEL = 2   # Simultaneous connections
 TIMEOUT = 15              # Seconds before timing out
 RETRIES = 2               # Number of retry attempts
-print("teste")
 
 # Metrics tracking
 response_times = []
