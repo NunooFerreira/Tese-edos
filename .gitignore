@@ -11,3 +11,9 @@ ENV/
 images/*.png
 *.log
 .env
+
+# Images
+*.png
+
+# Data files
+*.csv
