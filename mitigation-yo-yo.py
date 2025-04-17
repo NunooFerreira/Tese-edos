@@ -62,9 +62,9 @@ def main():
         if detect_attack(pod_history):
             print("Detected Yo-Yo attack! Adjusting autoscaling target...")
             # Choose a new target between 55 and 85
-            new_target = random.randint(55, 85)
+            new_target = random.randint(60, 85)
             while new_target == current_target:  # Ensure the new target is different
-                new_target = random.randint(55, 85)
+                new_target = random.randint(60, 85)
             update_autoscaling_target(new_target)
             current_target = new_target
             # Reset history after adjustment

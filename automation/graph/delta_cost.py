@@ -5,6 +5,12 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from matplotlib.dates import DateFormatter
 
+# The script analyzes cost trends for Knative pods. 
+# It queries the OpenCost API to fetch pod cost data, extracts timestamps and costs for active pods, 
+# calculates the rate of cost change (delta) between consecutive time intervals, and generates a step graph showing how the cost fluctuates over time. 
+# Negative values on the graph indicate cost reductions (e.g., pods scaling down), while positive values reflect cost increases (e.g., pods scaling up). 
+
+
 # Consulta a API do OpenCost (1 dia; ajustar se necessário)
 url = "http://10.255.32.113:32079/model/allocation?window=12h&aggregate=pod"
 response = requests.get(url)
@@ -26,7 +32,7 @@ for pod_name, pod_data in knative_pods.items():
     total_cost = pod_data["totalCost"]
     pod_intervals.append((start, end, total_cost))
 
-# Obtém todos os pontos de tempo únicos (início e fim) e ordena
+# Obtém todos os pontos de tempo únicos (início e fim) e ordena os
 time_points = sorted(set([interval[0] for interval in pod_intervals] + 
                            [interval[1] for interval in pod_intervals]))
 
