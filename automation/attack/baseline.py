@@ -5,10 +5,11 @@ from datetime import datetime
 
 # Configuration
 TARGET_URL = "http://knative-fn4.default.127.0.0.1.nip.io/fib"
-CONCURRENCY = 1          # Constant concurrency to simulate legitimate traffic
+CONCURRENCY = 1              # Constant concurrency to simulate legitimate traffic
 CONNECTION_TIMEOUT = aiohttp.ClientTimeout(total=10)
 LOG_FILE = "logs/baseline_metrics.log"
-SLEEP_INTERVAL = 1        # Sleep time in seconds between requests for each worker
+SLEEP_INTERVAL = 1            # Seconds between requests for each worker
+RUN_DURATION = 12 * 60 * 60   # Total run time in seconds (12 hours)
 
 async def logger(queue, log_file):
     loop = asyncio.get_running_loop()
@@ -18,18 +19,19 @@ async def logger(queue, log_file):
             break
         await loop.run_in_executor(None, write_log, log_file, message)
 
+
 def write_log(log_file, message):
     log_file.write(message)
     log_file.flush()
 
 async def worker(session, queue):
-    """Async worker that makes requests, logs metrics, sleeps, and repeats indefinitely"""
+    """Async worker that makes requests, logs metrics, sleeps, and repeats until cancelled"""
     while True:
         start_time = time.perf_counter()
         timestamp = datetime.now().isoformat()
         try:
             async with session.get(TARGET_URL) as response:
-                await response.text()  # Consume response
+                await response.text()
                 end_time = time.perf_counter()
                 duration = end_time - start_time
                 status = response.status
@@ -43,36 +45,45 @@ async def worker(session, queue):
         await asyncio.sleep(SLEEP_INTERVAL)
 
 async def main():
-    """Main function to simulate continuous legitimate traffic"""
-    print("Async Baseline Simulation Script")
+    print("Async Baseline Simulation Script (12 hours)")
     print(f"Target: {TARGET_URL}")
     print(f"Concurrency: {CONCURRENCY}")
+
+    start_time = time.time()
     with open(LOG_FILE, "a") as log_file:
         queue = asyncio.Queue()
         logger_task = asyncio.create_task(logger(queue, log_file))
+
         connector = aiohttp.TCPConnector(limit=0)
         async with aiohttp.ClientSession(
             connector=connector,
             timeout=CONNECTION_TIMEOUT,
             auto_decompress=True
         ) as session:
-            tasks = []
-            for _ in range(CONCURRENCY):
-                task = asyncio.create_task(worker(session, queue))
-                tasks.append(task)
-            start_time = time.time()
+            tasks = [asyncio.create_task(worker(session, queue)) for _ in range(CONCURRENCY)]
+
+            # Log start
             await queue.put(f"Baseline simulation started at {datetime.now().isoformat()}\n")
+
+            # Run for RUN_DURATION seconds
             try:
-                while True:
+                while time.time() - start_time < RUN_DURATION:
                     elapsed = int(time.time() - start_time)
                     print(f"\rActive workers: {len(tasks)} | Elapsed: {elapsed}s", end="")
                     await asyncio.sleep(1)
-            except KeyboardInterrupt:
-                print("\nSimulation stopped")
-                for task in tasks:
-                    task.cancel()
-                await asyncio.gather(*tasks, return_exceptions=True)
-                await queue.put(f"Simulation stopped at {datetime.now().isoformat()}\n")
+            except asyncio.CancelledError:
+                pass
+
+            print("\nReached 12 hours. Stopping simulation.")
+            # Cancel workers
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Log stop
+            await queue.put(f"Simulation stopped at {datetime.now().isoformat()}\n")
+
+        # Signal logger to exit
         await queue.put(None)
         await logger_task
 

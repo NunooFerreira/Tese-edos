@@ -3,20 +3,13 @@ import asyncio
 import time
 from datetime import datetime
 
-
-# This Script is an asynchronous "YoYo Attack" tool that performs a load test on (http://knative-fn4.default.127.0.0.1.nip.io/fib) by sending HTTP GET requests. 
-# It alternates between high-concurrency "attack" phases (200 concurrent requests for 240 seconds) and no-request "cool down" phases (0 requests for 1200 seconds). 
-# For each request, it calculates the response time and logs the timestamp, duration (in seconds), and either the HTTP status code or error message to a file (attack_metrics.log). 
-# The script runs indefinitely until interrupted, displaying real-time progress (active tasks, elapsed, and remaining time). 
-# It uses aiohttp for async requests, manages connections efficiently, and handles logging asynchronously to avoid blocking.
-
-
 # Configuration
 TARGET_URL = "http://knative-fn4.default.127.0.0.1.nip.io/fib"
 NORMAL_CONCURRENCY = 0
 ATTACK_CONCURRENCY = 245            # Pod da scale aos 51, mas aumentar este valor mais so para ter a certez que da scale up
 ON_ATTACK_DURATION = 160            # 160 segundos foi o valor maximo ate um Pod começar a terminar antes do ataque terminar.
-OFF_ATTACK_DURATION = 1200          # 20 minutos de pausa 
+OFF_ATTACK_DURATION = 900           # 15 minutos de pausa 
+RUN_DURATION = 12 * 60 * 60         # Total run time in seconds (12 hours)
 CONNECTION_TIMEOUT = aiohttp.ClientTimeout(total=10)
 LOG_FILE = "logs/attack_metrics.log"
 
@@ -80,20 +73,25 @@ async def run_attack(concurrency, duration, queue):
 
 async def main():
     """Attack controller"""
-    print("Async YoYo Attack Script")
+    print("Async YoYo Attack Script (12 hour total runtime)")
     print(f"Target: {TARGET_URL}")
     print(f"Attack Concurrency: {ATTACK_CONCURRENCY}")
+    start_time = time.time()
+
     with open(LOG_FILE, "a") as log_file:
         queue = asyncio.Queue()
         logger_task = asyncio.create_task(logger(queue, log_file))
         try:
-            while True:
+            while time.time() - start_time < RUN_DURATION:
                 print("\n=== ATTACK PHASE ===")
                 await run_attack(ATTACK_CONCURRENCY, ON_ATTACK_DURATION, queue)
                 print("\n=== COOL DOWN ===")
                 await run_attack(NORMAL_CONCURRENCY, OFF_ATTACK_DURATION, queue)
         except KeyboardInterrupt:
-            print("\nAttack stopped")
+            print("\nAttack stopped by user")
+        finally:
+            # After 12h (or interruption), shut down
+            print("\nReached 12 hours. Stopping simulation.")
             await queue.put(None)
             await logger_task
 
