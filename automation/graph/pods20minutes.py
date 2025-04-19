@@ -3,7 +3,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from datetime import datetime
-from matplotlib.dates import DateFormatter
+from matplotlib.dates import DateFormatter, MinuteLocator
 
 # API do OpenCost
 url = "http://10.255.32.113:32079/model/allocation?window=30m&aggregate=pod"
@@ -41,9 +41,12 @@ plt.step(x_values, pod_counts, where='post', color='purple')
 plt.xlabel('Time')
 plt.ylabel('Número de Pods Ativos')
 plt.title('Comportamento do Autoscaler: Número de Pods Ativos (knative-fn4)')
+
+# Set X-axis to 20-minute intervals
+plt.gca().xaxis.set_major_locator(MinuteLocator(interval=1))  # <-- Add this line
 plt.gca().xaxis.set_major_formatter(DateFormatter('%Y-%m-%d %H:%M'))
 plt.gcf().autofmt_xdate()
-plt.grid(True)
+
 
 # Definir valores discretos para o eixo Y
 plt.yticks(range(0, max(pod_counts)+1))

@@ -8,8 +8,8 @@ SERVICE_NAME = "knative-fn4"
 NAMESPACE = "default"
 YAML_FILE = "knative-service4.yaml"
 CHECK_INTERVAL = 20   # Seconds between checks
-CHANGE_THRESHOLD = 3  # Trigger if pod count increases by more than 2 ou seja de 1+3 para 4
-HISTORY_WINDOW = 10    # Track last 5 pod counts
+CHANGE_THRESHOLD = 3  # Trigger if pod count increases by more than 2 ou seja de 1+3 para 4 Ou seja 300% increase
+HISTORY_WINDOW = 6    # Track last 10 pod counts
 SLEEP_AFTER_UPDATE = 120  # Seconds to sleep after changing the autoscaling target
 
 def get_pod_count():
@@ -35,14 +35,11 @@ def update_autoscaling_target(new_target):
     print(f"Updated autoscaling target to {new_target}")
 
 def detect_attack(pod_history):
-    # Check if pod count changes indicate an attack (increase > 1 pod per check) secalhar aqui mudar para percentagem?
-    if len(pod_history) < 2:
+    if len(pod_history) < 2:  # Needs at least 2 data points
         return False
-    # Check consecutive differences in the history
-    for i in range(1, len(pod_history)):
-        if (pod_history[i] - pod_history[i-1]) >= CHANGE_THRESHOLD:
-            return True
-    return False
+    min_pods = min(pod_history)  # Smallest value in history pod, so it triggers based on the smallest value
+    current_pods = pod_history[-1]  # Latest pod count
+    return (current_pods - min_pods) >= CHANGE_THRESHOLD
 
 def main():
     pod_history = []
@@ -61,7 +58,7 @@ def main():
         # Check for attack conditions: significant increase in pod count
         if detect_attack(pod_history):
             print("Detected Yo-Yo attack! Adjusting autoscaling target...")
-            # Choose a new target between 55 and 85
+            # Choose a new target between 60 and 85
             new_target = random.randint(60, 85)
             while new_target == current_target:  # Ensure the new target is different
                 new_target = random.randint(60, 85)
