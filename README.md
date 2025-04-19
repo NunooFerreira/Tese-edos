@@ -119,10 +119,4 @@ autoscaling.knative.dev/target-utilization-percentage: '100'
 └── mitigation-yo-yo.py       # Attack mitigation
 ```
 
-## Contributing
 
-Contributions are welcome! Please feel free to submit pull requests or open issues for:
-- Bug fixes
-- Feature enhancements
-- Documentation improvements
-- Testing scenarios
