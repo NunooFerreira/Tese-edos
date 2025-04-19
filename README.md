@@ -69,7 +69,7 @@ A comprehensive toolkit for analyzing, testing, and visualizing Knative Function
 ```yaml
 autoscaling.knative.dev/max-scale: '10'
 autoscaling.knative.dev/min-scale: '0'
-autoscaling.knative.dev/target: '70'
+autoscaling.knative.dev/target: '50'
 autoscaling.knative.dev/target-utilization-percentage: '100'
 ```
 
