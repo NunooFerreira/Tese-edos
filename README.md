@@ -86,13 +86,5 @@ autoscaling.knative.dev/target-utilization-percentage: '100'
 - NumPy & SciPy for data analysis
 - aiohttp for async load testing
 
-## Installation
 
-```bash
-pip install -r requirements.txt
-kubectl apply -f knative-service4.yaml
-```
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit pull requests or open issues for improvements and bug fixes.
