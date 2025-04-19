@@ -18,3 +18,4 @@ images/*.png
 # Data files
 *.csv
 *.json
+*.txt
