@@ -1,7 +1,7 @@
 import requests
 
 # Fetch data from OpenCost API
-url = "http://10.255.32.113:32079/model/allocation?window=1d&aggregate=pod"
+url = "http://10.255.32.113:32079/model/allocation?window=15h&aggregate=pod"
 response = requests.get(url)
 data = response.json()
 

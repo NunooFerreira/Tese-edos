@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 from datetime import datetime
 import numpy as np
@@ -39,9 +40,14 @@ def main(filepath):
     # Fill under
     ax.fill_between(times_fine, rt_fine, 0, color='tab:purple', alpha=0.5)
 
+    # Legend with max RT
+    max_rt = resp_times.max()
+    ax.plot([], [], ' ', label=f"Max Response Time = {max_rt:.3f} s")
+    ax.legend(loc='upper right', handlelength=0)
+
     # Axes styling
     ax.set_ylabel('Response Time [s]')
-    ax.set_ylim(0.00, resp_times.max() * 1.05)
+    ax.set_ylim(0.00, max_rt * 1.05)
     ax.yaxis.grid(True)
 
     # Hourly ticks, HH:MM labels
@@ -59,6 +65,9 @@ def main(filepath):
     end_hour = datetime(times[-1].year, times[-1].month, times[-1].day, times[-1].hour, 0)
     ax.set_xlim(start_hour, end_hour)
 
+
+
+    
     fig.autofmt_xdate()
     fig.tight_layout(pad=1.0)
     outname = 'baseline_response_time.png'

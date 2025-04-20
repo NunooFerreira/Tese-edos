@@ -8,7 +8,7 @@ TARGET_URL = "http://knative-fn4.default.127.0.0.1.nip.io/fib"
 NORMAL_CONCURRENCY = 0
 ATTACK_CONCURRENCY = 245            # Pod da scale aos 51, mas aumentar este valor mais so para ter a certez que da scale up
 ON_ATTACK_DURATION = 160            # 160 segundos foi o valor maximo ate um Pod começar a terminar antes do ataque terminar.
-OFF_ATTACK_DURATION = 200           # 15 minutos de pausa 
+OFF_ATTACK_DURATION = 1200          # 20 minutos updated minutos de pausa 
 RUN_DURATION = 12 * 60 * 60         # Total run time in seconds (12 hours)
 CONNECTION_TIMEOUT = aiohttp.ClientTimeout(total=10)
 LOG_FILE = "logs/attack_metrics.log"
