@@ -54,7 +54,7 @@ def plot_pod_counts(x, y, output_path):
     Generate and save a step-plot of active pod counts over time.
     """
     plt.figure(figsize=(12, 6))
-    plt.step(x, y, where='post', color='purple')
+    plt.step(x, y, where='post', color='tab:blue')
     plt.xlabel('Time')
     plt.ylabel('Number of Active Pods')
     plt.title('Autoscaler Behavior: Active knative-fn4 Pod Count Over Time')
@@ -79,7 +79,7 @@ def main():
     )
     parser.add_argument(
         "--output",
-        default="pod_count.png",
+        default="images/pod_count.png",
         help="Path to save the resulting plot (default: pod_count.png)"
     )
     args = parser.parse_args()

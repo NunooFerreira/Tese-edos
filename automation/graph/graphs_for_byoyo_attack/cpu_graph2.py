@@ -58,7 +58,7 @@ y_values.append(y_values[-1])  # Extend the last percentage
 
 # Create the step plot
 plt.figure(figsize=(12, 6))  # Set figure size
-plt.step(x_values, y_values, where='post')  # 'post' means value applies after each x point
+plt.step(x_values, y_values, where='post', color='tab:blue')  # 'post' means value applies after each x point
 plt.xlabel('Time')
 plt.ylabel('CPU Usage Percentage (%)')
 plt.title('CPU Usage Percentage Over Time for knative-fn4 Pods')
@@ -69,5 +69,6 @@ plt.gca().xaxis.set_major_formatter(DateFormatter('%Y-%m-%d %H:%M'))
 plt.gcf().autofmt_xdate()  # Rotate date labels for better visibility
 
 # Save the plot to a file
+print("Saved the image as cpu_usage2.png!")
 plt.savefig('images/cpu_usage2.png')
 plt.close()  # Close the figure to free memory

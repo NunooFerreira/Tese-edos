@@ -62,7 +62,7 @@ def compute_time_series(intervals):
 def plot_cpu_percentage(x, y, out_path):
     """Generate and save a step-plot of CPU usage % over time."""
     plt.figure(figsize=(12, 6))
-    plt.step(x, y, where='post')
+    plt.step(x, y, where='post', color='tab:blue')
     plt.xlabel('Time')
     plt.ylabel('CPU Usage Percentage (%)')
     plt.title('CPU Usage Percentage Over Time for knative-fn4 Pods')
@@ -84,7 +84,7 @@ def main():
     )
     parser.add_argument(
         "--output",
-        default="cpu_usage.png",
+        default="images/cpu_usage.png",
         help="Path to save the resulting plot (default: cpu_usage.png)"
     )
     args = parser.parse_args()

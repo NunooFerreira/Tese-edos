@@ -7,7 +7,7 @@ from datetime import datetime
 from matplotlib.dates import DateFormatter
 
 # Fetch data from the OpenCost API
-url = "http://10.255.32.113:32079/model/allocation?window=12h&aggregate=pod"
+url = "http://10.255.32.113:32079/model/allocation?window=18h&aggregate=pod"
 response = requests.get(url)
 data = response.json()
 
@@ -57,7 +57,7 @@ y_values.append(y_values[-1])  # Extend the last percentage
 
 # Create the step plot
 plt.figure(figsize=(12, 6))  # Set figure size
-plt.step(x_values, y_values, where='post')  # 'post' means value applies after each x point
+plt.step(x_values, y_values, where='post', color='tab:blue')  # 'post' means value applies after each x point
 plt.xlabel('Time')
 plt.ylabel('CPU Usage Percentage (%)')
 plt.title('CPU Usage Percentage Over Time for knative-fn4 Pods')

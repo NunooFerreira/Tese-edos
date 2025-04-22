@@ -36,9 +36,9 @@ def main(filepath):
     ax.set_title("Response Time Baseline Script", fontsize=16, pad=15)
 
     # Smooth curve only
-    ax.plot(times_fine, rt_fine, color='tab:purple', linewidth=2, zorder=2)
+    ax.plot(times_fine, rt_fine, color='tab:blue', linewidth=2, zorder=2)
     # Fill under
-    ax.fill_between(times_fine, rt_fine, 0, color='tab:purple', alpha=0.5)
+    ax.fill_between(times_fine, rt_fine, 0, color='tab:blue', alpha=0.5)
 
     # Legend with max RT
     max_rt = resp_times.max()

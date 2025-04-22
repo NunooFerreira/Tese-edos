@@ -55,7 +55,7 @@ for i in range(len(x_values) - 1):
 
 # Plot the step chart
 plt.figure(figsize=(12, 6))
-plt.step(x_delta, cost_rate, where='post', color='red')
+plt.step(x_delta, cost_rate, where='post', color='tab:blue')
 plt.xlabel('Time')
 plt.ylabel('Cost Rate ($/min)')
 plt.title('Variação do Custo (Delta do totalCost) ao Longo do Tempo para knative-fn4')

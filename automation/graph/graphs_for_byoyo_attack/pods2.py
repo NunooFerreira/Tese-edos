@@ -39,7 +39,7 @@ for t in time_points:
 
 # Plot the step chart for pod counts
 plt.figure(figsize=(12, 6))
-plt.step(x_values, pod_counts, where='post', color='purple')
+plt.step(x_values, pod_counts, where='post', color='tab:blue')
 plt.xlabel('Time')
 plt.ylabel('Número de Pods Ativos')
 plt.title('Comportamento do Autoscaler: Número de Pods Ativos (knative-fn4)')

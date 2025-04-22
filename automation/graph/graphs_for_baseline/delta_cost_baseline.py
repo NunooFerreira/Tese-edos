@@ -81,7 +81,7 @@ def plot_cost_rate(x, y, output_path):
     Generate and save a step-plot of cost rate over time.
     """
     plt.figure(figsize=(12, 6))
-    plt.step(x, y, where='post', color='red')
+    plt.step(x, y, where='post', color='tab:blue')
     plt.xlabel('Time')
     plt.ylabel('Cost Rate ($/min)')
     plt.title('Variation of totalCost Over Time for knative-fn4 Pods')
@@ -103,7 +103,7 @@ def main():
     )
     parser.add_argument(
         "--output",
-        default="cost_rate.png",
+        default="images/cost_rate.png",
         help="Path to save the resulting plot (default: cost_rate.png)"
     )
     args = parser.parse_args()

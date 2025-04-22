@@ -6,7 +6,7 @@ from datetime import datetime
 from matplotlib.dates import DateFormatter
 
 # API do OpenCost
-url = "http://10.255.32.113:32079/model/allocation?window=3h&aggregate=pod"
+url = "http://10.255.32.113:32079/model/allocation?window=13h&aggregate=pod"
 response = requests.get(url)
 data = response.json()
 
@@ -37,7 +37,7 @@ for t in time_points:
 
 # Plota o gráfico do número de pods ativos
 plt.figure(figsize=(12, 6))
-plt.step(x_values, pod_counts, where='post', color='purple')
+plt.step(x_values, pod_counts, where='post', color='tab:blue')
 plt.xlabel('Time')
 plt.ylabel('Número de Pods Ativos')
 plt.title('Comportamento do Autoscaler: Número de Pods Ativos (knative-fn4)')

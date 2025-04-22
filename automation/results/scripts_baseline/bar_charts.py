@@ -30,7 +30,7 @@ def create_histogram(response_times, output_filename):
     plt.figure(figsize=(10, 6))
     
     # Create histogram
-    n, bins, patches = plt.hist(response_times, bins=20, color='tab:purple', 
+    n, bins, patches = plt.hist(response_times, bins=20, color='tab:blue', 
                                alpha=0.7, edgecolor='white')
     
     plt.xlabel('Response Time (s)')
