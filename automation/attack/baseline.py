@@ -3,6 +3,14 @@ import asyncio
 import time
 from datetime import datetime
 
+
+ # This Script is an asynchronous "YoYo Attack" tool that performs a load test on (http://knative-fn4.default.127.0.0.1.nip.io/fib) by sending HTTP GET requests. 
+ # It alternates between high-concurrency "attack" phases (200 concurrent requests for 240 seconds) and no-request "cool down" phases (0 requests for 1200 seconds). 
+ # For each request, it calculates the response time and logs the timestamp, duration (in seconds), and either the HTTP status code or error message to a file (attack_metrics.log). 
+ # The script runs indefinitely until interrupted, displaying real-time progress (active tasks, elapsed, and remaining time). 
+ # It uses aiohttp for async requests, manages connections efficiently, and handles logging asynchronously to avoid blocking.
+
+ 
 # Configuration
 TARGET_URL = "http://knative-fn4.default.127.0.0.1.nip.io/fib"
 CONCURRENCY = 1              # Constant concurrency to simulate legitimate traffic

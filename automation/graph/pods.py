@@ -6,7 +6,7 @@ from datetime import datetime
 from matplotlib.dates import DateFormatter
 
 # API do OpenCost
-url = "http://10.255.32.113:32079/model/allocation?window=15h&aggregate=pod"
+url = "http://10.255.32.113:32079/model/allocation?window=3h&aggregate=pod"
 response = requests.get(url)
 data = response.json()
 

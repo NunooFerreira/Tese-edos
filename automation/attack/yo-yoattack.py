@@ -6,9 +6,9 @@ from datetime import datetime
 # Configuration
 TARGET_URL = "http://knative-fn4.default.127.0.0.1.nip.io/fib"
 NORMAL_CONCURRENCY = 0
-ATTACK_CONCURRENCY = 245            # Pod da scale aos 51, mas aumentar este valor mais so para ter a certez que da scale up
-ON_ATTACK_DURATION = 160            # 160 segundos foi o valor maximo ate um Pod começar a terminar antes do ataque terminar.
-OFF_ATTACK_DURATION = 1200          # 20 minutos updated minutos de pausa 
+ATTACK_CONCURRENCY = 265            # Pod da scale aos 51, mas aumentar este valor mais so para ter a certez que da scale up
+ON_ATTACK_DURATION = 35             # 120 para testar agora. 160 segundos foi o valor maximo ate um Pod começar a terminar antes do ataque terminar.
+OFF_ATTACK_DURATION = 900           # 15 minutos updated minutos de pausa 
 RUN_DURATION = 12 * 60 * 60         # Total run time in seconds (12 hours)
 CONNECTION_TIMEOUT = aiohttp.ClientTimeout(total=10)
 LOG_FILE = "logs/attack_metrics.log"
@@ -47,7 +47,7 @@ async def worker(session, stop_time, queue):
 async def run_attack(concurrency, duration, queue):
     """Run async load test"""
     stop_time = time.time() + duration
-    connector = aiohttp.TCPConnector(limit=0)
+    connector = aiohttp.TCPConnector(limit=0, force_close=True)  # Add force_close=True
     async with aiohttp.ClientSession(
         connector=connector,
         timeout=CONNECTION_TIMEOUT,

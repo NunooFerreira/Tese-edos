@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import sys
 from datetime import datetime
 import numpy as np
@@ -6,7 +5,7 @@ import matplotlib
 matplotlib.rcParams.update({'font.size': 14})
 from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
-from scipy.interpolate import interp1d
+from scipy.signal import find_peaks
 
 def main(filepath):
     # 1) Read & parse
@@ -25,29 +24,31 @@ def main(filepath):
     # 2) Convert datetimes to matplotlib float days
     num_times = mdates.date2num(times)
 
-    # 3) Interpolate (cubic) on a fine grid
-    f_interp = interp1d(num_times, resp_times, kind='cubic')
-    num_fine = np.linspace(num_times[0], num_times[-1], 300)
-    rt_fine   = f_interp(num_fine)
-    times_fine = mdates.num2date(num_fine)
+    # 3) Find peaks (local maxima) in the response times
+    peaks, _ = find_peaks(resp_times)
 
-    # 4) Plot
+    # 4) Create the plot
     fig, ax = plt.subplots(figsize=(10,5))
-    ax.set_title("Response Time Baseline Script", fontsize=16, pad=15)
+    ax.set_title("Response Time Baseline Script with Horizontal Peak Connections", fontsize=16, pad=15)
 
-    # Smooth curve only
-    ax.plot(times_fine, rt_fine, color='tab:purple', linewidth=2, zorder=2)
-    # Fill under
-    ax.fill_between(times_fine, rt_fine, 0, color='tab:purple', alpha=0.5)
+    # Plot real values (scatter plot)
+    ax.scatter(times, resp_times, color='tab:purple', zorder=2)
 
-    # Legend with max RT
-    max_rt = resp_times.max()
-    ax.plot([], [], ' ', label=f"Max Response Time = {max_rt:.3f} s")
-    ax.legend(loc='upper right', handlelength=0)
+    # 5) Connect higher points with horizontal lines
+    highest_value = resp_times[peaks[0]]  # Start with the first peak value
+    x_points = [times[peaks[0]]]
+
+    for i in range(1, len(peaks)):
+        if resp_times[peaks[i]] >= highest_value:
+            # Add the time of the current peak to the x_points list
+            x_points.append(times[peaks[i]])
+            # Draw the horizontal line between the previous and current peak
+            ax.plot([x_points[-2], x_points[-1]], [highest_value, highest_value], color='tab:orange', linewidth=2, zorder=3)
+            highest_value = resp_times[peaks[i]]  # Update the highest value
 
     # Axes styling
     ax.set_ylabel('Response Time [s]')
-    ax.set_ylim(0.00, max_rt * 1.05)
+    ax.set_ylim(0.00, resp_times.max())  # Use max() directly to avoid scaling above 0.8
     ax.yaxis.grid(True)
 
     # Hourly ticks, HH:MM labels
@@ -57,20 +58,14 @@ def main(filepath):
     ax.xaxis.set_major_formatter(formatter)
     ax.set_xlabel('Time')
 
-    # Align X-axis to start exactly at 14:00
-    start_hour = datetime(times[0].year, times[0].month, times[0].day, 14, 0)
-    # Handle possible date roll-over at midnight
-    if start_hour < times[0]:
-        start_hour = start_hour.replace(day=start_hour.day + 1)
-    end_hour = datetime(times[-1].year, times[-1].month, times[-1].day, times[-1].hour, 0)
+    # Set X-axis from 01:00 to 13:00 on 2025-04-20
+    start_hour = datetime(2025, 4, 20, 1, 0)
+    end_hour = datetime(2025, 4, 20, 13, 0)
     ax.set_xlim(start_hour, end_hour)
 
-
-
-    
     fig.autofmt_xdate()
     fig.tight_layout(pad=1.0)
-    outname = 'baseline_response_time.png'
+    outname = 'baseline_response_time_with_horizontal_peak_connections.png'
     fig.savefig(outname, dpi=300, bbox_inches='tight')
     print(f"Saved plot to {outname}")
 
