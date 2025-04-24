@@ -1,55 +1,57 @@
-import json
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from datetime import datetime
 from matplotlib.dates import DateFormatter
+import os
+import numpy as np
 
-# Path to your local JSON file (same structure as the API response)
-input_file = "logs_yoyo-attack.json"
+# File path
+log_file = "pod_counts.log"
+output_image = "images/pod_count.png"
 
-# Load JSON data from file instead of fetching via HTTP
-with open(input_file, 'r') as f:
-    data = json.load(f)
+# Ensure output directory exists
+os.makedirs(os.path.dirname(output_image), exist_ok=True)
 
-# Filter pods whose name starts with "knative-fn4-"
-knative_pods = {}
-for pod_name, pod_data in data["data"][0].items():
-    if pod_name.startswith("knative-fn4-"):
-        knative_pods[pod_name] = pod_data
-
-# Extract intervals: start and end timestamps
-pod_intervals = []
-for pod_name, pod_data in knative_pods.items():
-    start = datetime.fromisoformat(pod_data["start"].replace("Z", "+00:00"))
-    end = datetime.fromisoformat(pod_data["end"].replace("Z", "+00:00"))
-    pod_intervals.append((start, end))
-
-# Gather all unique time points (start and end) and sort them
-time_points = sorted(set([interval[0] for interval in pod_intervals] + 
-                           [interval[1] for interval in pod_intervals]))
-
-# Count active pods at each time point
-x_values = []
+# Lists to store data
+timestamps = []
 pod_counts = []
-for t in time_points:
-    count = sum(1 for interval in pod_intervals if interval[0] <= t < interval[1])
-    x_values.append(t)
-    pod_counts.append(count)
 
-# Plot the step chart for pod counts
-plt.figure(figsize=(12, 6))
-plt.step(x_values, pod_counts, where='post', color='tab:blue')
-plt.xlabel('Time')
-plt.ylabel('Número de Pods Ativos')
-plt.title('Comportamento do Autoscaler: Número de Pods Ativos (knative-fn4)')
+# Read and parse the log file
+with open(log_file, 'r') as f:
+    for line in f:
+        if "Running Pods" in line:
+            parts = line.strip().split(" - Running Pods: ")
+            time_str = parts[0]
+            pod_count = int(parts[1])
+           
+            timestamps.append(datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S'))
+            pod_counts.append(pod_count)
+
+# Create figure with appropriate size
+plt.figure(figsize=(14, 6))
+
+# Plot as bar chart instead of step
+plt.bar(timestamps, pod_counts, width=0.0003, color='#1f77b4', edgecolor='#1f77b4', linewidth=1.2)
+
+# Style improvements
+plt.xlabel('Time', fontsize=12)
+plt.ylabel('Número de Pods Ativos', fontsize=12)
+plt.title('Comportamento do Autoscaler: Número de Pods Ativos (Knative)', fontsize=14)
+
+# Format x-axis with date formatting
 plt.gca().xaxis.set_major_formatter(DateFormatter('%Y-%m-%d %H:%M'))
-plt.gcf().autofmt_xdate()
-plt.grid(True)
+plt.xticks(rotation=45)
 
-# Set discrete values for Y-axis\plt.yticks(range(0, max(pod_counts) + 1))
+# Y-axis with discrete values
+max_pods = max(pod_counts)
+plt.yticks(range(0, max_pods + 2))
+plt.ylim(-0.1, max_pods + 0.5)
+
+# Improved grid
+plt.grid(True, linestyle='--', alpha=0.7)
 
 plt.tight_layout()
-plt.savefig('images/pod_count2.png')
+plt.savefig(output_image, dpi=300)
 plt.close()
-print("Gráfico 'pod_count.png' salvo.")
+print(f"Gráfico '{output_image}' salvo.")

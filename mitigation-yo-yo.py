@@ -11,6 +11,7 @@ CHECK_INTERVAL = 20   # Seconds between checks
 CHANGE_THRESHOLD = 3  # Trigger if pod count increases by more than 2 ou seja de 1+3 para 4 Ou seja 300% increase
 HISTORY_WINDOW = 6    # Track last 10 pod counts
 SLEEP_AFTER_UPDATE = 120  # Seconds to sleep after changing the autoscaling target
+#Mudas o randomizer para 75-85 para ter a certeza que nos primeiros testes daava bem.
 
 def get_pod_count():
     # Get the current number of pods
@@ -58,10 +59,10 @@ def main():
         # Check for attack conditions: significant increase in pod count
         if detect_attack(pod_history):
             print("Detected Yo-Yo attack! Adjusting autoscaling target...")
-            # Choose a new target between 60 and 85
-            new_target = random.randint(60, 85)
+            # Choose a new target between 75 and 85
+            new_target = random.randint(75, 85)
             while new_target == current_target:  # Ensure the new target is different
-                new_target = random.randint(60, 85)
+                new_target = random.randint(75, 85)
             update_autoscaling_target(new_target)
             current_target = new_target
             # Reset history after adjustment

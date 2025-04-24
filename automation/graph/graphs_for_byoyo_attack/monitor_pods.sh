@@ -15,5 +15,5 @@ while true; do
     echo "$TIMESTAMP - Running Pods: $POD_COUNT" >> "$OUTPUT_FILE"
 
     # Wait for 30 seconds before the next check
-    sleep 2
+    sleep 60
 done

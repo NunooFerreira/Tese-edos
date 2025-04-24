@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 import matplotlib
 matplotlib.rcParams.update({'font.size': 14})
@@ -40,14 +39,9 @@ def main(filepath):
     # Fill under
     ax.fill_between(times_fine, rt_fine, 0, color='tab:blue', alpha=0.5)
 
-    # Legend with max RT
-    max_rt = resp_times.max()
-    ax.plot([], [], ' ', label=f"Max Response Time = {max_rt:.3f} s")
-    ax.legend(loc='upper right', handlelength=0)
-
     # Axes styling
     ax.set_ylabel('Response Time [s]')
-    ax.set_ylim(0.00, max_rt * 1.05)
+    ax.set_ylim(0.00, resp_times.max() * 1.05)
     ax.yaxis.grid(True)
 
     # Hourly ticks, HH:MM labels
@@ -57,17 +51,11 @@ def main(filepath):
     ax.xaxis.set_major_formatter(formatter)
     ax.set_xlabel('Time')
 
-    # Align X-axis to start exactly at 14:00
-    start_hour = datetime(times[0].year, times[0].month, times[0].day, 14, 0)
-    # Handle possible date roll-over at midnight
-    if start_hour < times[0]:
-        start_hour = start_hour.replace(day=start_hour.day + 1)
-    end_hour = datetime(times[-1].year, times[-1].month, times[-1].day, times[-1].hour, 0)
+    # Align X-axis to start at 1 PM (13:00) and end at 1 AM (01:00 next day)
+    start_hour = datetime(times[0].year, times[0].month, times[0].day, 1, 0)  # 1 PM
+    end_hour = start_hour.replace(hour=13, minute=0) + timedelta(days=1)  # 1 AM next day
     ax.set_xlim(start_hour, end_hour)
 
-
-
-    
     fig.autofmt_xdate()
     fig.tight_layout(pad=1.0)
     outname = 'baseline_response_time.png'
