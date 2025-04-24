@@ -3,8 +3,9 @@ import datetime
 import argparse
 import os
 import numpy as np
+import matplotlib.dates as mdates
 
-plt.rcParams.update({'font.size': 12})
+plt.rcParams.update({'font.size': 14})  # Increased font size to match previous code
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Plot response time histogram')
@@ -16,9 +17,10 @@ def read_data(filepath):
     response_times = []
     with open(filepath, 'r') as f:
         for line in f:
+            if not line.strip(): continue
             parts = line.strip().split(',')
             try:
-                dt = datetime.datetime.strptime(parts[0], "%Y-%m-%dT%H:%M:%S.%f")
+                dt = datetime.datetime.fromisoformat(parts[0])
                 rt = float(parts[1])
                 timestamps.append(dt)
                 response_times.append(rt)
@@ -26,27 +28,64 @@ def read_data(filepath):
                 continue
     return timestamps, np.array(response_times)
 
-def create_histogram(response_times, output_filename):
-    plt.figure(figsize=(10, 6))
+def create_histogram(response_times, output_filename, filepath):
+    fig, ax = plt.subplots(figsize=(12, 6))  # Match the figure size from previous code
     
-    # Create histogram
-    n, bins, patches = plt.hist(response_times, bins=20, color='tab:blue', 
-                                 alpha=0.7, edgecolor='white')
+    # Determine if this is a yoyo attack file
+    is_yoyo = 'yoyo' in filepath.lower()
+    title = "Response Time Distribution - Yoyo Attack" if is_yoyo else "Response Time Distribution - Baseline"
+    ax.set_title(title, fontsize=16, pad=15)
     
-    plt.xlabel('Response Time (s)')
-    plt.ylabel('Frequency')
-    plt.title('Response Time Distribution')
-    plt.grid(True, alpha=0.3)
-
-    # Customizing the X-axis to show ticks from 0.0, 0.1, 0.2, etc.
-    tick_interval = 0.1
-    tick_range = np.arange(0.0, max(response_times) + tick_interval, tick_interval)
-    plt.xticks(tick_range)
+    # Calculate stats for smart bin selection
+    median = np.median(response_times)
+    p85 = np.percentile(response_times, 85)
     
-    plt.tight_layout()
-    plt.savefig(output_filename, dpi=300, bbox_inches='tight')
-    plt.close()
-
+    # Create histogram with more controlled bins
+    if is_yoyo:
+        # For yoyo, we want to capture the distribution's shape while handling outliers
+        y_limit = max(median * 2, p85)
+        # Clip data for binning but show the range in stats
+        binned_data = np.clip(response_times, 0, y_limit)
+        bins = np.linspace(0, y_limit, 20)
+    else:
+        # For baseline, use the full range
+        y_limit = response_times.max() * 1.05
+        binned_data = response_times
+        bins = 20
+    
+    n, bins, patches = ax.hist(binned_data, bins=bins, color='tab:blue', 
+                               alpha=0.7, edgecolor='white', label='Response Times')
+    
+    # Add a vertical line for the median
+    ax.axvline(median, color='red', linestyle='dashed', linewidth=2, 
+              label=f'Median: {median:.3f}s')
+    
+    # Axes styling to match previous plot
+    ax.set_xlabel('Response Time [s]')
+    ax.set_ylabel('Frequency')
+    
+    # Set ylim with a bit of headroom
+    ax.set_ylim(0, ax.get_ylim()[1] * 1.1)
+    
+    # Add grid for better readability
+    ax.grid(True, linestyle='--', alpha=0.7)
+    
+    # Add legend
+    ax.legend()
+    
+    # Print statistics to help with debugging - matching previous format
+    if is_yoyo:
+        print(f"\nStatistics for {filepath}:")
+        print(f"Median response time: {median:.3f}s")
+        print(f"85th percentile: {p85:.3f}s")
+        print(f"Maximum value: {np.max(response_times):.3f}s")
+        print(f"Plotting limit set to: {y_limit:.3f}s")
+    
+    fig.tight_layout(pad=1.0)
+    
+    # Dynamic output filename based on input
+    fig.savefig(output_filename, dpi=300, bbox_inches='tight')
+    print(f"Saved histogram to {output_filename}")
 
 if __name__ == '__main__':
     args = parse_arguments()
@@ -57,5 +96,5 @@ if __name__ == '__main__':
         exit(1)
         
     base_name = os.path.splitext(args.filename)[0]
-    output_filename = f"{base_name}_histogram.png"
-    create_histogram(response_times, output_filename)
+    output_filename = f"images/{base_name}_histogram.png"
+    create_histogram(response_times, output_filename, args.filename)

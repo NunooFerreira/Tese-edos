@@ -33,10 +33,8 @@ def main(filepath):
     # 4) Plot
     fig, ax = plt.subplots(figsize=(12,6))
     
-    # Determine if this is a yoyo attack file
-    is_yoyo = 'yoyo' in filepath.lower()
-    title = "Response Time (Yoyo Attack)" if is_yoyo else "Response Time Baseline"
-    ax.set_title(title, fontsize=16, pad=15)
+    # Static title for baseline
+    ax.set_title("Response Time Baseline", fontsize=16, pad=15)
 
     # Smooth curve only
     ax.plot(times_fine, rt_fine, color='tab:blue', linewidth=2, zorder=2)
@@ -46,18 +44,8 @@ def main(filepath):
     # Axes styling
     ax.set_ylabel('Response Time [s]')
     
-    # Smart y-axis limit setting with more detail for yoyo attack
-    if is_yoyo:
-        # Calculate the 85th percentile for upper limit
-        y_max = np.percentile(resp_times, 85)
-        # Calculate the median for reference
-        y_median = np.median(resp_times)
-        # Set the limit to either 2x median or 85th percentile, whichever is larger
-        y_limit = max(y_median * 2, y_max)
-        ax.set_ylim(0.00, y_limit)
-    else:
-        ax.set_ylim(0.00, resp_times.max() * 1.05)
-
+    # Y-axis limits for baseline
+    ax.set_ylim(0.00, resp_times.max() * 1.05)
     ax.yaxis.grid(True)
 
     # Hourly ticks, HH:MM labels
@@ -65,7 +53,7 @@ def main(filepath):
     formatter = mdates.DateFormatter('%H:%M')
     ax.xaxis.set_major_locator(locator)
     ax.xaxis.set_major_formatter(formatter)
-    ax.set_xlabel('Time')
+    ax.set_xlabel('Time of Day (HH)')
 
     # Adjust X-axis limits
     start_hour = times[0]
@@ -78,18 +66,10 @@ def main(filepath):
     fig.autofmt_xdate()
     fig.tight_layout(pad=1.0)
     
-    # Dynamic output filename based on input
-    outname = 'yoyo_response_time.png' if is_yoyo else 'baseline_response_time.png'
-    fig.savefig(outname, dpi=300, bbox_inches='tight')
+    # Static output filename
+    outname = 'baseline_response_time.png'
+    fig.savefig('images/baseline_response_time.png', dpi=300, bbox_inches='tight')
     print(f"Saved plot to {outname}")
-
-    # Print statistics to help with debugging
-    if is_yoyo:
-        print(f"\nStatistics for {filepath}:")
-        print(f"Median response time: {np.median(resp_times):.3f}s")
-        print(f"85th percentile: {np.percentile(resp_times, 85):.3f}s")
-        print(f"Maximum value: {np.max(resp_times):.3f}s")
-        print(f"Y-axis limit set to: {y_limit:.3f}s")
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
