@@ -7,70 +7,100 @@ import yaml
 SERVICE_NAME = "knative-fn4"
 NAMESPACE = "default"
 YAML_FILE = "knative-service4.yaml"
-CHECK_INTERVAL = 20   # Seconds between checks
-CHANGE_THRESHOLD = 3  # Trigger if pod count increases by more than 2 ou seja de 1+3 para 4 Ou seja 300% increase
-HISTORY_WINDOW = 6    # Track last 10 pod counts
-SLEEP_AFTER_UPDATE = 120  # Seconds to sleep after changing the autoscaling target
-#Mudas o randomizer para 75-85 para ter a certeza que nos primeiros testes daava bem.
+CHECK_INTERVAL = 35   # Seconds between checks
+CHANGE_THRESHOLD = 3  # Trigger if pod count increases by more than this
+HISTORY_WINDOW = 6    # Track last N pod counts
+SLEEP_AFTER_UPDATE = 400  # Seconds to sleep after changing the autoscaling target
+
+# Range for random target values
+TARGET_MIN = 82
+TARGET_MAX = 82
+
 
 def get_pod_count():
-    # Get the current number of pods
-    cmd = f"kubectl get pods -n {NAMESPACE} -l serving.knative.dev/service={SERVICE_NAME} --no-headers | wc -l"
+    """Get the current number of pods for the Knative service."""
+    cmd = (
+        f"kubectl get pods -n {NAMESPACE} \
+"
+        f"-l serving.knative.dev/service={SERVICE_NAME} \
+"
+        f"--field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l"
+    )
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    return int(result.stdout.strip())
+    try:
+        return int(result.stdout.strip())
+    except ValueError:
+        return 0
+
 
 def update_autoscaling_target(new_target):
-    # Update the autoscaling target in the YAML file and apply it
+    """
+    Update the autoscaling annotations in the YAML file and apply the changes.
+    Sets a new target plus scale-to-zero grace and retention annotations.
+    """
     with open(YAML_FILE, 'r') as file:
         config = yaml.safe_load(file)
-    
-    # Update the target annotation to the new value between 55 and 85
-    config['spec']['template']['metadata']['annotations']['autoscaling.knative.dev/target'] = str(new_target)
-    
+
+    annotations = config.setdefault('spec', {}) \
+                      .setdefault('template', {}) \
+                      .setdefault('metadata', {}) \
+                      .setdefault('annotations', {})
+
+    # Update the main target
+    annotations['autoscaling.knative.dev/target'] = str(new_target)
+    # Ensure pods scale down quickly to zero when idle
+    annotations['autoscaling.knative.dev/scale-to-zero-grace-period'] = "15s"
+    annotations['autoscaling.knative.dev/scale-to-zero-pod-retention-period'] = "0s"
+
     # Save the updated YAML
     with open(YAML_FILE, 'w') as file:
         yaml.dump(config, file)
-    
-    # Run the kubectl apply command
+
+    # Apply via kubectl
     subprocess.run(f"kubectl apply -f {YAML_FILE}", shell=True, check=True)
-    print(f"Updated autoscaling target to {new_target}")
+    print(f"Updated autoscaling target to {new_target} and set scale-to-zero annotations.")
+
 
 def detect_attack(pod_history):
-    if len(pod_history) < 2:  # Needs at least 2 data points
+    """Detect if current pod count jump exceeds the threshold."""
+    if len(pod_history) < 2:
         return False
-    min_pods = min(pod_history)  # Smallest value in history pod, so it triggers based on the smallest value
-    current_pods = pod_history[-1]  # Latest pod count
+    min_pods = min(pod_history)
+    current_pods = pod_history[-1]
     return (current_pods - min_pods) >= CHANGE_THRESHOLD
+
 
 def main():
     pod_history = []
-    current_target = 50  # Starting target (not used beyond comparison)
+    current_target = None
 
     print("Starting Yo-Yo attack mitigation...")
     while True:
         current_pod_count = get_pod_count()
         print(f"Current pod count: {current_pod_count}")
-        
+
         # Track pod count history
         pod_history.append(current_pod_count)
         if len(pod_history) > HISTORY_WINDOW:
             pod_history.pop(0)
-        
-        # Check for attack conditions: significant increase in pod count
+
+        # If we detect a pod spike, adjust autoscaling
         if detect_attack(pod_history):
-            print("Detected Yo-Yo attack! Adjusting autoscaling target...")
-            # Choose a new target between 75 and 85
-            new_target = random.randint(75, 85)
-            while new_target == current_target:  # Ensure the new target is different
-                new_target = random.randint(75, 85)
+            print("Detected Yo-Yo attack! Adjusting autoscaling annotations...")
+            # Choose a new target in [TARGET_MIN, TARGET_MAX]
+            new_target = random.randint(TARGET_MIN, TARGET_MAX)
+            while new_target == current_target:
+                new_target = random.randint(TARGET_MIN, TARGET_MAX)
+
             update_autoscaling_target(new_target)
             current_target = new_target
-            # Reset history after adjustment
+            # Reset history to avoid repeated triggers
             pod_history = [current_pod_count]
-            # Sleep for 60 seconds before resuming monitoring
+            # Sleep to allow new settings to take effect
             time.sleep(SLEEP_AFTER_UPDATE)
-        
+
         time.sleep(CHECK_INTERVAL)
+
 
 if __name__ == "__main__":
     main()
