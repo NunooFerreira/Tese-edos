@@ -7,10 +7,10 @@ import yaml
 SERVICE_NAME = "knative-fn4"
 NAMESPACE = "default"
 YAML_FILE = "knative-service4.yaml"
-CHECK_INTERVAL = 20   # Seconds between checks
-CHANGE_THRESHOLD = 3  # Trigger if pod count increases by more than 2 ou seja de 1+3 para 4 Ou seja 300% increase
+CHECK_INTERVAL = 50   # Seconds between checks
+CHANGE_THRESHOLD = 4  # Trigger if pod count increases by more than 2 ou seja de 1+3 para 4 Ou seja 300% increase
 HISTORY_WINDOW = 6    # Track last 10 pod counts
-SLEEP_AFTER_UPDATE = 120  # Seconds to sleep after changing the autoscaling target
+SLEEP_AFTER_UPDATE = 3600  # Seconds to sleep after changing the autoscaling target
 #Mudas o randomizer para 75-85 para ter a certeza que nos primeiros testes daava bem.
 
 def get_pod_count():
