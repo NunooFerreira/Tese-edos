@@ -17,7 +17,7 @@ QUERY           = """
   sum(kube_pod_container_resource_requests{namespace="default",pod=~"knative-fn4-.*",resource="cpu"})
 ) * 100
 """
-END_TIME_STR    = "2025-04-23T12:51:10Z"
+END_TIME_STR    = "2025-04-18T01:49:52Z"  
 DURATION_HOURS  = 13
 STEP            = "30s"                   # High resolution
 
