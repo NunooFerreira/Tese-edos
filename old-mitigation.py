@@ -10,8 +10,8 @@ YAML_FILE = "knative-service4.yaml"
 CHECK_INTERVAL = 50   # Seconds between checks
 CHANGE_THRESHOLD = 4  # Trigger if pod count increases by more than 2 ou seja de 1+3 para 4 Ou seja 300% increase
 HISTORY_WINDOW = 6    # Track last 10 pod counts
-SLEEP_AFTER_UPDATE = 3600  # Seconds to sleep after changing the autoscaling target
-#Mudas o randomizer para 75-85 para ter a certeza que nos primeiros testes daava bem.
+SLEEP_AFTER_UPDATE = 10800  # Seconds to sleep after changing the autoscaling target
+#Mudas o randomizer para 80-85 para ter a certeza que nos primeiros testes daava bem.
 
 def get_pod_count():
     # Get the current number of pods
@@ -60,14 +60,14 @@ def main():
         if detect_attack(pod_history):
             print("Detected Yo-Yo attack! Adjusting autoscaling target...")
             # Choose a new target between 75 and 85
-            new_target = random.randint(75, 85)
+            new_target = random.randint(80, 85)
             while new_target == current_target:  # Ensure the new target is different
-                new_target = random.randint(75, 85)
+                new_target = random.randint(80, 85)
             update_autoscaling_target(new_target)
             current_target = new_target
             # Reset history after adjustment
             pod_history = [current_pod_count]
-            # Sleep for 60 seconds before resuming monitoring
+            # Sleep before resuming monitoring
             time.sleep(SLEEP_AFTER_UPDATE)
         
         time.sleep(CHECK_INTERVAL)

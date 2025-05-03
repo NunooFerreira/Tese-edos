@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import json
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 import matplotlib
-# Use a non-interactive backend
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.dates import DateFormatter
+import matplotlib.dates as mdates
+import matplotlib.ticker as ticker
 
 def load_data_from_file(filepath):
     """Load and return the JSON data from a local file."""
@@ -23,7 +23,6 @@ def extract_pod_intervals(data, prefix="knative-fn4-"):
     for pod_name, pod in data.items():
         if not pod_name.startswith(prefix):
             continue
-        # Parse timestamps
         start = datetime.fromisoformat(pod['start'].replace('Z', '+00:00'))
         end   = datetime.fromisoformat(pod['end'].replace('Z', '+00:00'))
         usage   = pod.get('cpuCoreUsageAverage', 0.0)
@@ -36,13 +35,11 @@ def compute_time_series(intervals):
     Given a list of (start, end, usage, request) intervals,
     build two lists x (times) and y (% usage) suitable for a step-plot.
     """
-    # Gather all unique time-points
     time_points = sorted({t for iv in intervals for t in (iv[0], iv[1])})
     
     x_vals, y_vals = [], []
     for i in range(len(time_points) - 1):
         t0 = time_points[i]
-        # active pods at t0
         active = [iv for iv in intervals if iv[0] <= t0 < iv[1]]
         if active:
             total_usage   = sum(iv[2] for iv in active)
@@ -53,7 +50,6 @@ def compute_time_series(intervals):
         x_vals.append(t0)
         y_vals.append(pct)
     
-    # extend the last value to the final timestamp
     x_vals.append(time_points[-1])
     y_vals.append(y_vals[-1] if y_vals else 0.0)
     
@@ -61,15 +57,36 @@ def compute_time_series(intervals):
 
 def plot_cpu_percentage(x, y, out_path):
     """Generate and save a step-plot of CPU usage % over time."""
-    plt.figure(figsize=(12, 6))
-    plt.step(x, y, where='post', color='tab:blue')
-    plt.xlabel('Time')
-    plt.ylabel('CPU Usage Percentage (%)')
-    plt.title('CPU Usage Percentage Over Time for knative-fn4 Pods')
-    plt.grid(True)
-    ax = plt.gca()
-    ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d %H:%M'))
-    plt.gcf().autofmt_xdate()
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.step(x, y, where='post', color='tab:blue', linewidth=1.5)
+
+    ax.set_xlabel('Time')
+    ax.set_ylabel('CPU Usage Percentage (%)')
+    ax.set_title('CPU Usage Percentage Over Time for knative-fn4 Pods')
+
+    # Major ticks: every 30 minutes
+    ax.xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0, 30]))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+
+    # Minor ticks: every 15 minutes
+    ax.xaxis.set_minor_locator(mdates.MinuteLocator(byminute=[15, 45]))
+
+    # Set X limits
+    if x:
+        start_time = x[0] - timedelta(minutes=30)
+        end_time = x[-1] + timedelta(minutes=30)
+        ax.set_xlim(start_time, end_time)
+
+    # Y-axis: percentage (we leave automatic scaling)
+    ax.yaxis.set_major_formatter(ticker.PercentFormatter())
+
+    # Grid styling
+    ax.grid(which='major', linestyle='--', alpha=0.5)
+    ax.grid(which='minor', linestyle=':', alpha=0.3)
+
+    # Rotate labels
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right')
+
     plt.tight_layout()
     plt.savefig(out_path)
     plt.close()
@@ -85,21 +102,13 @@ def main():
     parser.add_argument(
         "--output",
         default="images/cpu_usage.png",
-        help="Path to save the resulting plot (default: cpu_usage.png)"
+        help="Path to save the resulting plot (default: images/cpu_usage.png)"
     )
     args = parser.parse_args()
 
-    # 1. Load your local JSON
     raw_data = load_data_from_file(args.json_file)
-
-    # If your JSON is wrapped (e.g. {"data": [...]}) you'll need to drill in accordingly.
-    # Here we assume it's directly { pod_name: pod_data, ... }
     pod_intervals = extract_pod_intervals(raw_data)
-
-    # 2. Compute the time series
     x_vals, y_vals = compute_time_series(pod_intervals)
-
-    # 3. Plot and save
     plot_cpu_percentage(x_vals, y_vals, args.output)
     print(f"Plot saved to {args.output}")
 

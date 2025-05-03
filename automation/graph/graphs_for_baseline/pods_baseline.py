@@ -1,28 +1,18 @@
 #!/usr/bin/env python3
 import json
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 import matplotlib
-# Use a non-interactive backend
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.dates import DateFormatter
+import matplotlib.dates as mdates
+import matplotlib.ticker as ticker
 
 def load_data_from_file(filepath):
-    """Load and return the JSON data from a local file."""
     with open(filepath, 'r') as f:
         return json.load(f)
 
-
 def extract_pod_intervals(data, prefix="knative-fn4-"):
-    """
-    From a dict of pod_name -> pod_data, filter for names
-    starting with `prefix` and return a list of
-    (start_datetime, end_datetime).
-    """
-    # If your JSON wraps pods under data[0], uncomment:
-    # data = data.get("data", [])[0]
-
     intervals = []
     for pod_name, pod in data.items():
         if not pod_name.startswith(prefix):
@@ -32,42 +22,51 @@ def extract_pod_intervals(data, prefix="knative-fn4-"):
         intervals.append((start, end))
     return intervals
 
-
 def compute_pod_counts(intervals):
-    """
-    Given a list of (start, end) intervals, return two lists:
-    sorted unique time points, and count of active pods at each time.
-    """
-    # Unique, sorted time points
     time_points = sorted({t for iv in intervals for t in iv})
-
     counts = []
     for t in time_points:
         cnt = sum(1 for iv in intervals if iv[0] <= t < iv[1])
         counts.append(cnt)
-
     return time_points, counts
 
-
 def plot_pod_counts(x, y, output_path):
-    """
-    Generate and save a step-plot of active pod counts over time.
-    """
-    plt.figure(figsize=(12, 6))
-    plt.step(x, y, where='post', color='tab:blue')
-    plt.xlabel('Time')
-    plt.ylabel('Number of Active Pods')
-    plt.title('Autoscaler Behavior: Active knative-fn4 Pod Count Over Time')
-    ax = plt.gca()
-    ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d %H:%M'))
-    plt.gcf().autofmt_xdate()
-    plt.grid(True)
-    # discrete y-axis ticks
-    plt.yticks(range(0, max(y) + 1 if y else 1))
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.step(x, y, where='post', color='tab:blue', linewidth=1.5)
+
+
+    ax.xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0, 30]))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+
+
+    ax.xaxis.set_minor_locator(mdates.MinuteLocator(byminute=[15, 45]))
+
+    # So os numeros uinteiros neste caso..
+    ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
+    # Se quisres mudar os Y limites.
+    min_y = 0
+    max_y = max(y) + 1 if y else 1
+    ax.set_ylim(min_y, max_y)
+
+    # -30 +30 minutos antes e depois.
+    start_time = x[0] - timedelta(minutes=30)
+    end_time = x[-1] + timedelta(minutes=30)
+    ax.set_xlim(start_time, end_time)
+
+    # Grid style como default.
+    ax.grid(which='major', linestyle='--', alpha=0.5)
+    ax.grid(which='minor', linestyle=':', alpha=0.3)
+
+
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Running Pods')
+    ax.set_title('Number of Running Pods Over Time')
+
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right')
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close()
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -80,7 +79,7 @@ def main():
     parser.add_argument(
         "--output",
         default="images/pod_count.png",
-        help="Path to save the resulting plot (default: pod_count.png)"
+        help="Path to save the resulting plot (default: images/pod_count.png)"
     )
     args = parser.parse_args()
 

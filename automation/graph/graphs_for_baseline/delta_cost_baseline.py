@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 import json
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 import matplotlib
 # Use a non-interactive backend
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.dates import DateFormatter
+import matplotlib.dates as mdates
+import matplotlib.ticker as ticker
+
 
 def load_data_from_file(filepath):
     """Load and return the JSON data from a local file."""
@@ -20,9 +23,6 @@ def extract_cost_intervals(data, prefix="knative-fn4-"):
     filter keys by `prefix` and return a list of
     (start_datetime, end_datetime, total_cost).
     """
-    # If the JSON wraps pods under data[0], uncomment below:
-    # data = data.get("data", [])[0]
-
     intervals = []
     for pod_name, pod in data.items():
         if not pod_name.startswith(prefix):
@@ -51,7 +51,6 @@ def compute_cost_rate(intervals):
         # Build a flat line from start to end
         return [start, end], [rate, rate]
 
-    # Otherwise compute deltas as before
     # Unique, sorted time points
     time_points = sorted({t for iv in intervals for t in (iv[0], iv[1])})
 
@@ -76,20 +75,39 @@ def compute_cost_rate(intervals):
     return x_times, rates
 
 
-def plot_cost_rate(x, y, output_path):
+def plot_cost_rate(x, y, out_path):
     """
     Generate and save a step-plot of cost rate over time.
     """
-    plt.figure(figsize=(12, 6))
-    plt.step(x, y, where='post', color='tab:blue')
-    plt.xlabel('Time')
-    plt.ylabel('Cost Rate ($/min)')
-    plt.title('Variation of totalCost Over Time for knative-fn4 Pods')
-    plt.gca().xaxis.set_major_formatter(DateFormatter('%Y-%m-%d %H:%M'))
-    plt.gcf().autofmt_xdate()
-    plt.grid(True)
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.step(x, y, where='post', color='tab:blue', linewidth=1.5)
+
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Cost Rate ($/min)')
+    ax.set_title('Variation of totalCost Over Time for knative-fn4 Pods')
+
+    # Major ticks: every 30 minutes
+    ax.xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0, 30]))
+    ax.xaxis.set_major_formatter(DateFormatter('%H:%M'))
+
+    # Minor ticks: every 15 minutes
+    ax.xaxis.set_minor_locator(mdates.MinuteLocator(byminute=[15, 45]))
+
+    # Set X limits
+    if x:
+        start_time = x[0] - timedelta(minutes=30)
+        end_time = x[-1] + timedelta(minutes=30)
+        ax.set_xlim(start_time, end_time)
+
+    # Grid styling
+    ax.grid(which='major', linestyle='--', alpha=0.5)
+    ax.grid(which='minor', linestyle=':', alpha=0.3)
+
+    # Rotate labels
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right')
+
     plt.tight_layout()
-    plt.savefig(output_path)
+    plt.savefig(out_path)
     plt.close()
 
 
@@ -104,7 +122,7 @@ def main():
     parser.add_argument(
         "--output",
         default="images/cost_rate.png",
-        help="Path to save the resulting plot (default: cost_rate.png)"
+        help="Path to save the resulting plot (default: images/cost_rate.png)"
     )
     args = parser.parse_args()
 

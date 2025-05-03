@@ -1,83 +1,68 @@
 import json
-import os
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from datetime import datetime
-from matplotlib.dates import DateFormatter, HourLocator
+from matplotlib.dates import DateFormatter
 
-# Configuration
-INPUT_JSON = 'logs_yoyo-attack.json'   # JSON file with OpenCost-like data
-OUTPUT_IMAGE = 'images/cpu_usage_percentage.png'
-POD_PREFIX = 'knative-fn4-'
+# Path to your local JSON file (same structure as the API response)
+input_file = "yoyo-data2.json"
 
-# Ensure output directory exists
-os.makedirs(os.path.dirname(OUTPUT_IMAGE), exist_ok=True)
+# Load JSON data from file instead of fetching via HTTP
+with open(input_file, 'r') as f:
+    data = json.load(f)
 
-# Load data from JSON file
-with open(INPUT_JSON, 'r') as f:
-    raw = json.load(f)
+# Filter pods whose name starts with "knative-fn4-"
+knative_pods = {}
+for pod_name, pod_data in data["data"][0].items():
+    if pod_name.startswith("knative-fn4-"):
+        knative_pods[pod_name] = pod_data
 
-# Extract pod entries (first element under 'data')
-all_pods = raw.get('data', [])[0] if raw.get('data') else {}
-
-# Filter pods by prefix
-knative_pods = {name: info for name, info in all_pods.items() if name.startswith(POD_PREFIX)}
-
-# Parse pod intervals with CPU usage and request
+# Extract intervals: start, end, totalCost
 pod_intervals = []
-for info in knative_pods.values():
-    try:
-        start = datetime.fromisoformat(info['start'].replace('Z', '+00:00'))
-        end = datetime.fromisoformat(info['end'].replace('Z', '+00:00'))
-        usage = info.get('cpuCoreUsageAverage', 0)
-        request = info.get('cpuCoreRequestAverage', 0)
-        pod_intervals.append((start, end, usage, request))
-    except KeyError:
-        continue
+for pod_name, pod_data in knative_pods.items():
+    start_str = pod_data["start"]
+    end_str = pod_data["end"]
+    # Parse ISO timestamps
+    start = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
+    end = datetime.fromisoformat(end_str.replace("Z", "+00:00"))
+    total_cost = pod_data["totalCost"]
+    pod_intervals.append((start, end, total_cost))
 
-# Collect and sort unique time points
-time_points = sorted({t for interval in pod_intervals for t in (interval[0], interval[1])})
+# Gather all unique time points (start and end) and sort them
+time_points = sorted(set([interval[0] for interval in pod_intervals] + 
+                           [interval[1] for interval in pod_intervals]))
 
-# Compute CPU usage percentage at each interval start
-x_values, y_values = [], []
-for i in range(len(time_points) - 1):
-    t = time_points[i]
-    active = [iv for iv in pod_intervals if iv[0] <= t < iv[1]]
-    if active:
-        total_usage = sum(iv[2] for iv in active)
-        total_request = sum(iv[3] for iv in active)
-        percentage = (total_usage / total_request) * 100 if total_request > 0 else 0
-    else:
-        percentage = 0
+# Sum the cost of active pods at each time point
+x_values = []
+cost_sums = []
+for t in time_points:
+    active_cost = sum(interval[2] for interval in pod_intervals if interval[0] <= t < interval[1])
     x_values.append(t)
-    y_values.append(percentage)
+    cost_sums.append(active_cost)
 
-# Extend final point for step plot
-x_values.append(time_points[-1])
-if y_values:
-    y_values.append(y_values[-1])
-else:
-    y_values.append(0)
+# Compute cost change rate (delta per minute) between consecutive points
+x_delta = []
+cost_rate = []
+for i in range(len(x_values) - 1):
+    t1 = x_values[i]
+    t2 = x_values[i + 1]
+    dt_minutes = (t2 - t1).total_seconds() / 60.0
+    delta_cost = cost_sums[i + 1] - cost_sums[i]
+    rate = delta_cost / dt_minutes if dt_minutes > 0 else 0
+    x_delta.append(t1)
+    cost_rate.append(rate)
 
-# Plot step chart
+# Plot the step chart
 plt.figure(figsize=(12, 6))
-plt.step(x_values, y_values, where='post', color='tab:blue')
+plt.step(x_delta, cost_rate, where='post', color='tab:blue')
 plt.xlabel('Time')
-plt.ylabel('CPU Usage Percentage (%)')
-plt.title('CPU Usage Percentage Over Time for knative-fn4 Pods')
-
-# Set hourly ticks on X axis
-ax = plt.gca()
-ax.xaxis.set_major_locator(HourLocator(interval=1))
-ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d %H:%M'))
-
-# Improve layout and grid
-plt.grid(True, linestyle='--', alpha=0.7)
+plt.ylabel('Cost Rate ($/min)')
+plt.title('Variação do Custo (Delta do totalCost) ao Longo do Tempo para knative-fn4')
+plt.gca().xaxis.set_major_formatter(DateFormatter('%Y-%m-%d %H:%M'))
 plt.gcf().autofmt_xdate()
+plt.grid(True)
 plt.tight_layout()
-
-# Save plot
-plt.savefig(OUTPUT_IMAGE, dpi=300)
+plt.savefig('images/cost_rate2.png')
 plt.close()
-print(f"Saved '{OUTPUT_IMAGE}' with hourly ticks on X axis")
+print("Gráfico 'cost_rate.png' salvo.")

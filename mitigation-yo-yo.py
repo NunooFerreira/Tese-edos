@@ -7,10 +7,10 @@ import yaml
 SERVICE_NAME = "knative-fn4"
 NAMESPACE = "default"
 YAML_FILE = "knative-service4.yaml"
-CHECK_INTERVAL = 35   # Seconds between checks
+CHECK_INTERVAL = 50   # Seconds between checks
 CHANGE_THRESHOLD = 3  # Trigger if pod count increases by more than this
 HISTORY_WINDOW = 6    # Track last N pod counts
-SLEEP_AFTER_UPDATE = 400  # Seconds to sleep after changing the autoscaling target
+SLEEP_AFTER_UPDATE = 18800  # Seconds to sleep after changing the autoscaling target
 
 # Range for random target values
 TARGET_MIN = 82
