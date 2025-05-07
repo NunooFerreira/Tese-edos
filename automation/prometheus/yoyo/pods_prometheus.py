@@ -16,9 +16,9 @@ count by (namespace) (
 )
 """
 # Hardcoded time window (UTC format!)
-START_TIME_STR = "2025-05-04T15:20:00Z" # Isto era de um teste inicial."2025-04-23T00:00:00Z"
-END_TIME_STR   = "2025-05-05T05:30:00Z" # teste inicial"2025-04-23T12:51:10Z"
-STEP = "120s"  # sampling interval
+START_TIME_STR = "2025-05-04T15:20:00Z" 
+END_TIME_STR   = "2025-05-05T05:30:00Z" 
+STEP = "60"  # sampling interval
 
 # Output paths
 IMG_PATH      = "yoyo_images/running_pods_yoyo.png"

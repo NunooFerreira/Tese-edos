@@ -36,21 +36,22 @@ def get_pod_count():
 def update_autoscaling_target(new_target):
     """
     Update the autoscaling annotations in the YAML file and apply the changes.
-    Sets a new target plus scale-to-zero grace and retention annotations.
+    Sets a new target plus scale-to-zero grace, stable window, and retention annotations.
     """
     with open(YAML_FILE, 'r') as file:
         config = yaml.safe_load(file)
 
+    # Navigate to annotations dict
     annotations = config.setdefault('spec', {}) \
                       .setdefault('template', {}) \
                       .setdefault('metadata', {}) \
                       .setdefault('annotations', {})
 
-    # Update the main target
+    # Update autoscaling annotation values
     annotations['autoscaling.knative.dev/target'] = str(new_target)
-    # Ensure pods scale down quickly to zero when idle
-    annotations['autoscaling.knative.dev/scale-to-zero-grace-period'] = "15s"
+    annotations['autoscaling.knative.dev/scale-to-zero-grace-period'] = "10s"
     annotations['autoscaling.knative.dev/scale-to-zero-pod-retention-period'] = "0s"
+    annotations['autoscaling.knative.dev/stable-window'] = "30s"
 
     # Save the updated YAML
     with open(YAML_FILE, 'w') as file:
@@ -58,7 +59,7 @@ def update_autoscaling_target(new_target):
 
     # Apply via kubectl
     subprocess.run(f"kubectl apply -f {YAML_FILE}", shell=True, check=True)
-    print(f"Updated autoscaling target to {new_target} and set scale-to-zero annotations.")
+    print(f"Updated autoscaling target to {new_target} and set scale-to-zero and stable-window annotations.")
 
 
 def detect_attack(pod_history):
