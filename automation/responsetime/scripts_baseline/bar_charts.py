@@ -76,4 +76,4 @@ if __name__ == '__main__':
         exit(1)
         
     # Use static output filename
-    create_histogram(response_times, 'baseline_histogram.png')
+    create_histogram(response_times, 'yoyo_baseline_histogram.png')

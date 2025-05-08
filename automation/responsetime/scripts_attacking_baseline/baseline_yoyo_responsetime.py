@@ -41,9 +41,10 @@ def main(filepath):
     # 3) Interpolate (cubic) on a fine grid
     # Need at least 4 points for cubic interpolation
     if len(num_times) >= 4:
-        f_interp = interp1d(num_times, resp_times, kind='cubic')
+        f_interp = interp1d(num_times, resp_times, kind='quadratic')
         num_fine = np.linspace(num_times[0], num_times[-1], 300)
         rt_fine = f_interp(num_fine)
+        rt_fine = np.clip(rt_fine, 0, None)
         times_fine = mdates.num2date(num_fine)
     else:
         # Fallback to linear interpolation or just plot points if too few data points
@@ -112,12 +113,12 @@ def main(filepath):
 
     ax.yaxis.grid(True)
 
-    # Hourly ticks, HH:MM labels
-    locator = mdates.HourLocator()
+    # Half-hourly ticks: 00 and 30 minutes past each hour
+    locator = mdates.MinuteLocator(byminute=[0, 30])
     formatter = mdates.DateFormatter('%H:%M')
     ax.xaxis.set_major_locator(locator)
     ax.xaxis.set_major_formatter(formatter)
-    ax.set_xlabel('Time of Day (HH)')
+    
 
     # Adjust X-axis limits
     start_hour = times[0]

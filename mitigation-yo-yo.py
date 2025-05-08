@@ -10,7 +10,7 @@ YAML_FILE = "knative-service4.yaml"
 CHECK_INTERVAL = 50   # Seconds between checks
 CHANGE_THRESHOLD = 3  # Trigger if pod count increases by more than this
 HISTORY_WINDOW = 6    # Track last N pod counts
-SLEEP_AFTER_UPDATE = 18800  # Seconds to sleep after changing the autoscaling target
+SLEEP_AFTER_UPDATE = 5  # Seconds to sleep after changing the autoscaling target
 
 # Range for random target values
 TARGET_MIN = 82
@@ -51,7 +51,7 @@ def update_autoscaling_target(new_target):
     annotations['autoscaling.knative.dev/target'] = str(new_target)
     annotations['autoscaling.knative.dev/scale-to-zero-grace-period'] = "10s"
     annotations['autoscaling.knative.dev/scale-to-zero-pod-retention-period'] = "0s"
-    annotations['autoscaling.knative.dev/stable-window'] = "30s"
+    annotations['autoscaling.knative.dev/stable-window'] = "15s"
 
     # Save the updated YAML
     with open(YAML_FILE, 'w') as file:
