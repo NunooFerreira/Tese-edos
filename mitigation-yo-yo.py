@@ -13,8 +13,8 @@ HISTORY_WINDOW = 6    # Track last N pod counts
 SLEEP_AFTER_UPDATE = 5  # Seconds to sleep after changing the autoscaling target
 
 # Range for random target values
-TARGET_MIN = 82
-TARGET_MAX = 82
+TARGET_MIN = 70
+TARGET_MAX = 90
 
 
 def get_pod_count():
