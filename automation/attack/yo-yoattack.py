@@ -13,6 +13,8 @@ RUN_DURATION = 12 * 60 * 60         # Total run time in seconds (12 hours)
 CONNECTION_TIMEOUT = aiohttp.ClientTimeout(total=10)
 LOG_FILE = "logs/attack_metrics.log"
 
+
+
 async def logger(queue, log_file):
     loop = asyncio.get_running_loop()
     while True:
