@@ -96,5 +96,5 @@ if __name__ == '__main__':
         exit(1)
         
     base_name = os.path.splitext(args.filename)[0]
-    output_filename = f"images/{base_name}_histogram_yoyo.png"
+    output_filename = f"images/{base_name}_histogram_mitigation.png"
     create_histogram(response_times, output_filename, args.filename)

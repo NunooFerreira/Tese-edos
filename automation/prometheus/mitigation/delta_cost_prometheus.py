@@ -1,36 +1,31 @@
+#!/usr/bin/env python3
 import requests
 from datetime import datetime, timedelta, timezone
 import os
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.ticker as ticker
 
-
-#Filtra os pods cujo nome começa por knative-fn4-
-
-# Depois Extrai os campos:
-# Nome dos pods
-# Início e fim dos intervalo
-# Custo total desses intervalos
-# Dep+is tem uma litsa com o nome pod, inicio fim e o custo.
-
-
-
-# Configs:
+# -----------------------
+# Configuration
+# -----------------------
 OPENCOST_HOST    = "10.255.32.113:32079"
 POD_PREFIX       = "knative-fn4-"
-START_TIME_STR   = "2025-04-23T00:00:00Z"
-END_TIME_STR     = "2025-04-23T12:51:10Z"
-OUTPUT_PNG       = "cost_rate.png"
-DATA_TXT_PATH    = "data/deltacostdata.txt"
+START_TIME_STR = "2025-05-05T12:00:21Z" 
+END_TIME_STR   = "2025-05-05T23:55:21Z" 
+OUTPUT_PNG       = "mitigation_images/cost_rate_mitigation.png"
+DATA_TXT_PATH    = "data/deltacostdata_mitigation.txt"
 
 # Ensure data directory exists
 os.makedirs(os.path.dirname(DATA_TXT_PATH), exist_ok=True)
 
+# -----------------------
+# Helper Functions
+# -----------------------
 
-# Faz o GET Ao openCost API:
 def fetch_allocation_data(start: str, end: str):
     url = f"http://{OPENCOST_HOST}/model/allocation"
     params = {"window": f"{start},{end}", "aggregate": "pod"}
@@ -38,7 +33,6 @@ def fetch_allocation_data(start: str, end: str):
     resp.raise_for_status()
     return resp.json().get("data", [])
 
-#Extrai o total cost e as windows:
 def extract_cost_intervals(data, prefix=POD_PREFIX):
     intervals = []
     for bucket in data:
@@ -54,14 +48,14 @@ def extract_cost_intervals(data, prefix=POD_PREFIX):
 def compute_cost_rate(intervals):
     if not intervals:
         return [], []
-    # Caso so exita 1, é uma flat line.
+    # Single-interval flat rate
     if len(intervals) == 1:
         _, s, e, c = intervals[0]
         mins = (e - s).total_seconds() / 60
         rate = c / mins if mins > 0 else 0.0
         return [s, e], [rate, rate]
 
-    # Caso haja varios:
+    # Multi-interval differential
     pts = sorted({t for (_, s, e, _) in intervals for t in (s, e)})
     sums = [sum(c for (_, s, e, c) in intervals if s <= t < e) for t in pts]
     times, rates = [], []
@@ -73,7 +67,6 @@ def compute_cost_rate(intervals):
         rates.append(drate)
     return times, rates
 
-#DAR PLOT:
 def plot_cost_rate(x, y, out_path):
     fig, ax = plt.subplots(figsize=(10, 4))
     ax.step(x, y, where='post', color='tab:blue', linewidth=1.5)
@@ -93,19 +86,22 @@ def plot_cost_rate(x, y, out_path):
     plt.savefig(out_path)
     plt.close()
 
+# -----------------------
+# Main
+# -----------------------
 
 def main():
-    #Fetch & extract
+    # 1) Fetch & extract
     data = fetch_allocation_data(START_TIME_STR, END_TIME_STR)
     intervals = extract_cost_intervals(data)
     if not intervals:
         print("No matching intervals found.")
         return
 
-    #Compute cost rate
+    # 2) Compute cost rate
     times, rates = compute_cost_rate(intervals)
 
-    # Dump raw and computed data to text file
+    # 3) Dump raw and computed data to text file
     with open(DATA_TXT_PATH, 'w') as f:
         f.write("# Pod intervals and costs:\n")
         for pod_name, s, e, c in intervals:
@@ -115,7 +111,7 @@ def main():
             f.write(f"{t.isoformat()}\t{r:.5f}\n")
     print(f"Raw and computed data saved to {DATA_TXT_PATH}")
 
-    #Plot e dar save
+    # 4) Plot
     plot_cost_rate(times, rates, OUTPUT_PNG)
     print(f"Plot saved as {OUTPUT_PNG}")
 

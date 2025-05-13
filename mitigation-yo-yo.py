@@ -18,6 +18,7 @@ TARGET_MAX = 90
 
 
 def get_pod_count():
+    #obter o numero de pods em Running,
     """Get the current number of pods for the Knative service."""
     cmd = (
         f"kubectl get pods -n {NAMESPACE} \
@@ -63,6 +64,7 @@ def update_autoscaling_target(new_target):
 
 
 def detect_attack(pod_history):
+    #se a contagem de pods atual for maior do que o mínimo histórico por 3 ou mais pods, da trigger
     """Detect if current pod count jump exceeds the threshold."""
     if len(pod_history) < 2:
         return False
@@ -95,7 +97,7 @@ def main():
 
             update_autoscaling_target(new_target)
             current_target = new_target
-            # Reset history to avoid repeated triggers
+            # Dar reset ao pod history para n bugar.
             pod_history = [current_pod_count]
             # Sleep to allow new settings to take effect
             time.sleep(SLEEP_AFTER_UPDATE)

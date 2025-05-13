@@ -34,4 +34,4 @@ def analyze_response_log(file_path):
         print(f"{code}: {percentage:.2f}% ({count}/{total_requests})")
 
 # Mudar o nome do ficheiro aqui:
-analyze_response_log('baseline_metrics6.log')
+analyze_response_log('baseline_metrics7.log')

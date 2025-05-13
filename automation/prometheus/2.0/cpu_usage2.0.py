@@ -8,8 +8,8 @@ import matplotlib.dates as mdates
 import matplotlib.ticker as ticker
 
 # Configuration
-DATA_TXT_PATH = "data/cpuusage.txt"
-OUTPUT_PNG = "images/cpu_usage_from_file.png"
+DATA_TXT_PATH = "data/cpu_usage_mitigation_data.txt"
+OUTPUT_PNG = "images/cpu_usage_from_file_mitigation.png"
 
 # Ensure output directory exists
 os.makedirs(os.path.dirname(OUTPUT_PNG), exist_ok=True)
@@ -67,7 +67,7 @@ def plot_cpu_usage(timestamps, values, out_path):
 
     ax.set_xlabel('Time')
     ax.set_ylabel('CPU Usage (%)')
-    ax.set_title('knative-fn4 CPU Usage Percentage (from data)')
+    ax.set_title('knative-fn4 Overall CPU Usage Percentage')
 
     plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right')
     plt.tight_layout()
