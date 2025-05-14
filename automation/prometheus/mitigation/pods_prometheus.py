@@ -23,7 +23,7 @@ STEP = "60"  # sampling interval
 # Output paths
 IMG_PATH      = "mitigation_images/running_pods_mitigation.png"
 DATA_DIR      = "data"
-PODS_TXT_PATH = os.path.join(DATA_DIR, "mitigation_data.txt")
+PODS_TXT_PATH = os.path.join(DATA_DIR, "mitigation_data_pods.txt")
 
 # Ensure directories exist
 os.makedirs(os.path.dirname(IMG_PATH), exist_ok=True)

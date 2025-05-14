@@ -19,3 +19,6 @@ images/*.png
 *.csv
 *.json
 *.txt
+
+#Testing directorys:
+automation/prometheus/2.0/

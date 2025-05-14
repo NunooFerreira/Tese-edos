@@ -8,7 +8,7 @@ import matplotlib.dates as mdates
 import matplotlib.ticker as ticker
 from datetime import datetime, timezone, timedelta
 
-# User-configurable parameters
+# URL + a query que quero:
 PROM_HOST       = "10.255.32.113:31752"  # Prometheus host:port
 QUERY           = """
 (
@@ -17,7 +17,7 @@ QUERY           = """
   sum(kube_pod_container_resource_requests{namespace="default",pod=~"knative-fn4-.*",resource="cpu"})
 ) * 100
 """
-# Hardcoded time window (UTC format!)
+# Meter a window do ataque ou mitigation que preciso:
 START_TIME_STR = "2025-05-06T11:08:00Z" 
 END_TIME_STR   = "2025-05-06T22:58:00Z" 
 STEP           = "30s"                   # High resolution
@@ -27,15 +27,15 @@ IMG_PATH      = "baseline_images/cpu_usage_baseline.png"
 DATA_DIR      = "data"
 DATA_TXT_PATH   = os.path.join(DATA_DIR, "yoyo_cpu_usage.txt")
 
-# Ensure directories exist
+# Caso os direc nao tenham sido criados:
 os.makedirs(os.path.dirname(IMG_PATH), exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Parse times (UTC)
+# Parse times para UTC
 start_time = datetime.strptime(START_TIME_STR, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
 end_time   = datetime.strptime(END_TIME_STR,   "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
 
-# Prometheus query_range API call
+# Aqui fazer o requests da Query em si da Prometheus API 
 url = f"http://{PROM_HOST}/api/v1/query_range"
 params = {
     "query": QUERY,
@@ -65,25 +65,25 @@ else:
     print("No data returned for the query.")
     exit(1)
 
-# --- Dump to text file ---
+# Escrever no ficheiro para ver se esta tudo ok
 with open(DATA_TXT_PATH, "w") as f:
     f.write("# Timestamp (UTC)\tCPU Usage (%)\n")
     for t, v in zip(timestamps, values):
         f.write(f"{t.isoformat()}\t{v:.5f}\n")
 print(f"Raw data saved to {DATA_TXT_PATH}")
 
-# --- Plotting ---
+# -Plot
 fig, ax = plt.subplots(figsize=(10, 4))
 
 # Step plot
 ax.step(timestamps, values, where='post', linewidth=1.5)
 
-# X axis - Time format and ticks
+# X axis -
 ax.xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0, 30]))
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
 ax.xaxis.set_minor_locator(mdates.MinuteLocator(byminute=[15, 45]))
 
-# Y axis - integer ticks
+# Y axis 
 ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
 # Set Y limits

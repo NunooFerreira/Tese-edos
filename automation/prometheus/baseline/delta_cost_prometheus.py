@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.ticker as ticker
 
-# -----------------------
+
 # Configuration
-# -----------------------
+
 OPENCOST_HOST    = "10.255.32.113:32079"
 POD_PREFIX       = "knative-fn4-"
 START_TIME_STR = "2025-05-06T11:08:00Z" 
@@ -22,10 +22,8 @@ DATA_TXT_PATH    = "data/deltacostdata_baseline.txt"
 # Ensure data directory exists
 os.makedirs(os.path.dirname(DATA_TXT_PATH), exist_ok=True)
 
-# -----------------------
-# Helper Functions
-# -----------------------
 
+# Helper Functions
 def fetch_allocation_data(start: str, end: str):
     url = f"http://{OPENCOST_HOST}/model/allocation"
     params = {"window": f"{start},{end}", "aggregate": "pod"}
@@ -86,9 +84,6 @@ def plot_cost_rate(x, y, out_path):
     plt.savefig(out_path)
     plt.close()
 
-# -----------------------
-# Main
-# -----------------------
 
 def main():
     # 1) Fetch & extract
