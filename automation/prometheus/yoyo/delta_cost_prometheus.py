@@ -14,8 +14,8 @@ import matplotlib.ticker as ticker
 # -----------------------
 OPENCOST_HOST    = "10.255.32.113:32079"
 POD_PREFIX       = "knative-fn4-"
-START_TIME_STR   = "2025-04-23T00:00:00Z"
-END_TIME_STR     = "2025-04-23T12:51:10Z"
+START_TIME_STR   = "2025-05-04T16:50:00Z"
+END_TIME_STR     = "2025-05-05T05:30:00Z"
 OUTPUT_PNG       = "cost_rate.png"
 DATA_TXT_PATH    = "data/deltacostdata.txt"
 
@@ -80,7 +80,7 @@ def plot_cost_rate(x, y, out_path):
     ax.grid(which='minor', linestyle=':', alpha=0.3)
     ax.set_xlabel('Time')
     ax.set_ylabel('Cost Rate ($/min)')
-    ax.set_title(f"Cost Rate for {POD_PREFIX} Functions\n{START_TIME_STR} to {END_TIME_STR}")
+    ax.set_title(f"Cost Rate of the Knative Function")
     plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right')
     plt.tight_layout()
     plt.savefig(out_path)
