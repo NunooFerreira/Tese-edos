@@ -78,7 +78,7 @@ def plot_cost_rate(x, y, out_path):
     ax.grid(which='minor', linestyle=':', alpha=0.3)
     ax.set_xlabel('Time')
     ax.set_ylabel('Cost Rate ($/min)')
-    ax.set_title("Variation of totalCost Over Time for Knative-fn4 Pods")
+    ax.set_title("Cost Rate of the Knative Function")
     plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right')
     plt.tight_layout()
     plt.savefig(out_path)

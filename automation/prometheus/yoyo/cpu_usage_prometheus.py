@@ -103,7 +103,7 @@ ax.grid(which='minor', linestyle=':', alpha=0.3)
 # Labels & title
 ax.set_xlabel('Time')
 ax.set_ylabel('CPU Usage (%)')
-ax.set_title(f'knative-fn4 Overall CPU Usage Percentage\n(Window: {START_TIME_STR} to {END_TIME_STR})')
+ax.set_title(f'CPU Usage Percentage Over Time')
 
 # Rotate X labels
 plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right')
