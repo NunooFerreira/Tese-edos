@@ -129,7 +129,3 @@ This means:
 ├── knative-service4.yaml      # Knative configuration
 └── mitigation-yo-yo.py        # Attack mitigation
 ```
-
-## License
-
-[MIT License](LICENSE)
