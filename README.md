@@ -22,14 +22,7 @@ A comprehensive toolkit for analyzing, testing, and visualizing Knative Function
 
 #### Load Testing Framework (`automation/attack/`)
 - **Baseline Testing** (`baseline.py`): Single-user load simulation
-- **Concurrency Testing** (`concurrency.py`): Medium load (49 concurrent connections)
-- **High Load Testing** (`attack.py`): Stress testing (149 concurrent requests)
 - **Yo-Yo Attack Simulation** (`yo-yoattack.py`): Oscillating traffic patterns (265 concurrent requests)
-
-#### Monitoring System (`automation/graph/`)
-- **Pod Scaling Visualization**: Real-time pod count tracking
-- **Cost Analysis**: Integration with OpenCost API
-- **CPU Monitoring**: Utilization patterns and bottleneck identification
 
 #### Security Implementation (`mitigation-yo-yo.py`)
 - **Attack Detection**: Monitors pod scaling patterns
@@ -179,7 +172,3 @@ http://10.255.32.113:31752/api/v1/query?query=kube_pod_container_resource_reques
 ├── knative-service4.yaml      # Knative configuration
 └── mitigation-yo-yo.py        # Attack mitigation
 ```
-
-## License
-
-[MIT License](LICENSE)
