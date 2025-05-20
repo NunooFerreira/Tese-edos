@@ -121,6 +121,49 @@ This means:
    python automation/prometheus/cpu_usage.py
    ```
 
+### Cost Analysis
+
+Access the cost analysis for your Knative function:
+
+```bash
+python automation/cost/cost.py
+```
+
+This will calculate and display the total cost of running the Knative function over a 12-hour period. You can also access cost data through the API endpoint:
+
+```
+http://10.255.32.113:32079/model/allocation?window=12h&aggregate=pod
+```
+
+For a visual representation of cost over time:
+
+```bash
+python automation/prometheus/delta_costprometheus.py
+```
+
+This generates a cost rate graph showing the per-minute cost of your function as it scales up and down.
+
+### Metrics Collection
+
+View comprehensive metrics for all pods that ran during the test period:
+
+```bash
+python automation/metrics/metricas.py --input pods.json --output summary.txt
+```
+
+The metrics include:
+- **Resource Usage**: CPU cores, RAM bytes, network transfer
+- **Efficiency Metrics**: CPU and RAM efficiency percentages
+- **Cost Breakdown**: CPU cost, RAM cost, total cost
+- **Utilization Averages**: CPU core usage average, RAM byte usage average
+- **Runtime Statistics**: Total minutes, resource hours
+
+You can also access the raw metrics data through:
+
+```
+http://10.255.32.113:31752/api/v1/query?query=kube_pod_container_resource_requests
+```
+
 ## Project Structure
 ```
 .
