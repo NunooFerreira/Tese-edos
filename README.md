@@ -1,4 +1,4 @@
-# Knative Function Autoscaling Analysis Toolkit
+# Knative Function Autoscaling Analysis 
 
 A comprehensive toolkit for analyzing, testing, and visualizing Knative Function autoscaling behavior. This project focuses on understanding autoscaling patterns, detecting potential attacks, and implementing mitigation strategies, while monitoring performance and costs.
 
