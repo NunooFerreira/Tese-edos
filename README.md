@@ -22,8 +22,6 @@ A comprehensive toolkit for analyzing, testing, and visualizing Knative Function
 
 #### Load Testing Framework (`automation/attack/`)
 - **Baseline Testing** (`baseline.py`): Single-user load simulation
-- **Concurrency Testing** (`concurrency.py`): Medium load (49 concurrent connections)
-- **High Load Testing** (`attack.py`): Stress testing (149 concurrent requests)
 - **Yo-Yo Attack Simulation** (`yo-yoattack.py`): Oscillating traffic patterns (265 concurrent requests)
 
 #### Monitoring System (`automation/graph/`)
