@@ -160,15 +160,14 @@ http://10.255.32.113:31752/api/v1/query?query=kube_pod_container_resource_reques
 ## Project Structure
 ```
 .
-├── app4.py                    # Main FastAPI service
 ├── automation/
-│   ├── attack/                # Load testing suite
-│   ├── cost/                  # Cost analysis tools
-│   ├── graph/                 # Visualization tools
-│   ├── metrics/               # Metrics collection
-│   ├── prometheus/            # Prometheus integration
-│   └── results/               # Analysis data
+│   ├── attack/                # Attacking Scripts
+│   ├── cost/                  # Cost of the pods over 12 hours
+│   ├── metrics/               # Multiple Metrics collection
+│   ├── prometheus/            # Prometheus graphs
+│   └── responsetime/          # Graphs of the Response Time
+├── app4.py                    # Main FastAPI service
 ├── Dockerfile                 # Container configuration
-├── knative-service4.yaml      # Knative configuration
-└── mitigation-yo-yo.py        # Attack mitigation
+├── knative-service4.yaml      # Knative configurations
+└── mitigation-yo-yo.py        # Mitigation Script
 ```
