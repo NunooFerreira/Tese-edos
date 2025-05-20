@@ -24,11 +24,6 @@ A comprehensive toolkit for analyzing, testing, and visualizing Knative Function
 - **Baseline Testing** (`baseline.py`): Single-user load simulation
 - **Yo-Yo Attack Simulation** (`yo-yoattack.py`): Oscillating traffic patterns (265 concurrent requests)
 
-#### Monitoring System (`automation/graph/`)
-- **Pod Scaling Visualization**: Real-time pod count tracking
-- **Cost Analysis**: Integration with OpenCost API
-- **CPU Monitoring**: Utilization patterns and bottleneck identification
-
 #### Security Implementation (`mitigation-yo-yo.py`)
 - **Attack Detection**: Monitors pod scaling patterns
 - **Mitigation Strategy**: Dynamic autoscaling target adjustment
