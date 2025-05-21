@@ -11,7 +11,7 @@ A comprehensive toolkit for analyzing, testing, and visualizing Knative Function
 - **Serverless Platform**: Knative Serving with Kourier ingress
 - **Application Runtime**: Docker containers based on Python 3.9-slim
 - **Service Mesh**: Kourier for traffic routing and load balancing
-- **Monitoring**: Prometheus (10.255.32.113:31752) and OpenCost API
+- **Monitoring**: Prometheus and OpenCost API
 
 ### Main Components
 
