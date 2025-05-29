@@ -7,26 +7,31 @@ import yaml
 SERVICE_NAME = "knative-fn4"
 NAMESPACE = "default"
 YAML_FILE = "knative-service4.yaml"
-CHECK_INTERVAL = 50     # Seconds
-CHANGE_THRESHOLD = 3    # Trigger if pod count increases by more than this
-HISTORY_WINDOW = 5      # Track last N pod counts
-SLEEP_AFTER_UPDATE = 5  # Seconds to sleep after changing the autoscaling target
+CHECK_INTERVAL = 30  # Seconds
+CHANGE_THRESHOLD = 3  # Trigger if pod count increases by more than this
+HISTORY_WINDOW = 6    # Track last N pod counts
+SLEEP_AFTER_UPDATE = 5 # Seconds to sleep after changing the autoscaling target
 
-# Target range, it will incremente random value from 10 to 15
-INCREMENT_MIN = 10    
-INCREMENT_MAX = 15   
+# New global variables for YoYo attack response
+INCREMENT_MIN = 10
+INCREMENT_MAX = 15
+COOLDOWN_PERIOD = 2 * 60 * 60  # 2 hours in seconds
 
-# Default 
-DEFAULT_ANNOTATIONS = {
+# Default autoscaling configuration values
+DEFAULT_KPA_SETTINGS = {
     'autoscaling.knative.dev/max-scale': '10',
     'autoscaling.knative.dev/min-scale': '0',
     'autoscaling.knative.dev/target': '50',
     'autoscaling.knative.dev/target-utilization-percentage': '100'
+    # If you want specific scale-to-zero or other settings for the default state, add them here.
+    # e.g., 'autoscaling.knative.dev/scale-to-zero-grace-period': "60s"
 }
-DEFAULT_TARGET_VALUE = 50 
 
-# Vai dar Reset depois de passarem 2 horas sem YoYo attack.
-RESET_TIME_NO_ATTACK = 120 * 60  
+# Autoscaling settings specifically for mitigation (e.g., aggressive scale-to-zero)
+MITIGATION_SPECIFIC_SETTINGS = {
+    'autoscaling.knative.dev/scale-to-zero-grace-period': "10s",
+    'autoscaling.knative.dev/scale-to-zero-pod-retention-period': "0s"
+}
 
 
 def get_pod_count():
@@ -40,198 +45,180 @@ def get_pod_count():
     try:
         return int(result.stdout.strip())
     except ValueError:
-        print("Error getting pod count. Assuming 0.")
+        print("[WARN] Could not parse pod count, returning 0.")
         return 0
 
 
-def read_current_target():
-    """
-    Read the current autoscaling target from the YAML file.
-    Returns an integer or None if not found.
-    """
-    try:
-        with open(YAML_FILE, 'r') as file:
-            config = yaml.safe_load(file)
-        annotations = config.get('spec', {}).get('template', {}).get('metadata', {}).get('annotations', {})
-        target = annotations.get('autoscaling.knative.dev/target')
-        return int(target)
-    except FileNotFoundError:
-        print(f"Warning: YAML file {YAML_FILE} not found. Cannot read current target.")
-        return None
-    except (TypeError, ValueError, AttributeError):
-        print("Warning: Could not parse current target from YAML. It might be missing or malformed.")
-        return None
-
-
-def update_autoscaling_target(new_target):
+def modify_and_apply_yaml(new_autoscaling_annotations):
     """
     Update the autoscaling annotations in the YAML file and apply the changes.
-    Sets a new target plus scale-to-zero grace.
+    Removes all existing autoscaling.knative.dev/ annotations and applies the new set.
     """
+    print(f"[INFO] Updating autoscaling annotations to: {new_autoscaling_annotations}")
     try:
         with open(YAML_FILE, 'r') as file:
             config = yaml.safe_load(file)
     except FileNotFoundError:
-        print(f"Error: YAML file {YAML_FILE} not found. Cannot update target.")
-        config = {'apiVersion': 'serving.knative.dev/v1', 'kind': 'Service', 'metadata': {'name': SERVICE_NAME}, 'spec': {'template': {'metadata': {'annotations': {}}}}}
+        print(f"[ERROR] YAML file {YAML_FILE} not found. Cannot apply configuration.")
+        # Create a basic structure if file not found, so it can be written to.
+        # This might be too presumptive; depends on desired behavior for a missing file.
+        # For now, let's assume it should exist or the user handles its creation.
+        # If we want to create it:
+        # config = {'apiVersion': 'serving.knative.dev/v1', 'kind': 'Service', 'metadata': {'name': SERVICE_NAME}, 'spec': {'template': {'metadata': {'annotations': {}}}}}
+        # However, the original script assumes the YAML exists. We'll stick to that.
+        return
+    except yaml.YAMLError as e:
+        print(f"[ERROR] Error parsing YAML file {YAML_FILE}: {e}")
+        return
 
 
-    annotations = config.setdefault('spec', {}) \
-                      .setdefault('template', {}) \
-                      .setdefault('metadata', {}) \
-                      .setdefault('annotations', {})
+    # Ensure path to annotations exists
+    spec = config.setdefault('spec', {})
+    template = spec.setdefault('template', {})
+    metadata = template.setdefault('metadata', {})
+    annotations = metadata.setdefault('annotations', {})
 
-    # Update para os novos autoscaling.
-    annotations['autoscaling.knative.dev/target'] = str(new_target)
-    annotations['autoscaling.knative.dev/scale-to-zero-grace-period'] = "10s"
-    annotations['autoscaling.knative.dev/scale-to-zero-pod-retention-period'] = "0s"
+    # Remove existing autoscaling.knative.dev annotations
+    for key in list(annotations.keys()):
+        if key.startswith('autoscaling.knative.dev/'):
+            del annotations[key]
+
+    # Add the new ones
+    for key, value in new_autoscaling_annotations.items():
+        annotations[key] = str(value) # Ensure all values are strings for YAML
 
     try:
         with open(YAML_FILE, 'w') as file:
             yaml.dump(config, file)
-        subprocess.run(f"kubectl apply -f {YAML_FILE} -n {NAMESPACE}", shell=True, check=True, capture_output=True, text=True)
-        print(f"Updated autoscaling target to {new_target} and set scale-to-zero annotations.")
-    except FileNotFoundError: # Should not happen if we create basic config above
-        print(f"Error: YAML file {YAML_FILE} could not be written to.")
-    except subprocess.CalledProcessError as e:
-        print(f"Error applying kubectl command: {e}")
-        print(f"Stdout: {e.stdout}")
-        print(f"Stderr: {e.stderr}")
-    except Exception as e:
-        print(f"An unexpected error occurred during autoscaling target update: {e}")
+        print(f"[INFO] YAML file {YAML_FILE} updated.")
+    except IOError as e:
+        print(f"[ERROR] Could not write to YAML file {YAML_FILE}: {e}")
+        return
 
-
-def reset_to_default_autoscaling_config():
-    """
-    Resets the Knative service's autoscaling configuration to the defined defaults.
-    """
     try:
-        with open(YAML_FILE, 'r') as file:
+        subprocess.run(f"kubectl apply -f {YAML_FILE} -n {NAMESPACE}", shell=True, check=True)
+        print("[INFO] kubectl apply successful.")
+    except subprocess.CalledProcessError as e:
+        print(f"[ERROR] kubectl apply failed: {e}")
+
+
+def get_current_autoscaling_target_from_yaml(yaml_file_path):
+    """Reads the 'autoscaling.knative.dev/target' from the YAML file."""
+    try:
+        with open(yaml_file_path, 'r') as file:
             config = yaml.safe_load(file)
-    except FileNotFoundError:
-        print(f"Warning: YAML file {YAML_FILE} not found. Creating with default structure for reset.")
-        config = {'apiVersion': 'serving.knative.dev/v1', 'kind': 'Service', 'metadata': {'name': SERVICE_NAME}, 'spec': {'template': {'metadata': {'annotations': {}}}}}
-
-
-    annotations = config.setdefault('spec', {}) \
-                      .setdefault('template', {}) \
-                      .setdefault('metadata', {}) \
-                      .setdefault('annotations', {})
-
-    # Set default annotations
-    for key, value in DEFAULT_ANNOTATIONS.items():
-        annotations[key] = value
-
-    # Remove other specific autoscaling annotations that might have been added
-    # during attack mitigation and are not part of the desired default state.
-    annotations_to_remove = [
-        'autoscaling.knative.dev/scale-to-zero-grace-period',
-        'autoscaling.knative.dev/scale-to-zero-pod-retention-period'
-    ]
-    for key in annotations_to_remove:
-        if key in annotations:
-            del annotations[key]
-    
-    
-    keys_to_check = list(annotations.keys()) 
-    for key in keys_to_check:
-        if key.startswith('autoscaling.knative.dev/') and key not in DEFAULT_ANNOTATIONS:
-            print(f"Removing non-default autoscaling annotation: {key}")
-            del annotations[key]
-
-
-    try:
-        with open(YAML_FILE, 'w') as file:
-            yaml.dump(config, file)
-        
-        subprocess.run(f"kubectl apply -f {YAML_FILE} -n {NAMESPACE}", shell=True, check=True, capture_output=True, text=True)
-        print(f"Knative service {SERVICE_NAME} reset to default autoscaling configuration in {YAML_FILE}.")
-        for key, value in DEFAULT_ANNOTATIONS.items():
-            print(f"  {key}: '{value}'")
-
-    except FileNotFoundError:
-        print(f"Error: YAML file {YAML_FILE} could not be written to during reset.")
-    except subprocess.CalledProcessError as e:
-        print(f"Error applying kubectl command during reset: {e}")
-        print(f"Stdout: {e.stdout}")
-        print(f"Stderr: {e.stderr}")
-    except Exception as e:
-        print(f"An unexpected error occurred during configuration reset: {e}")
+        return config['spec']['template']['metadata']['annotations']['autoscaling.knative.dev/target']
+    except (FileNotFoundError, KeyError, TypeError, yaml.YAMLError):
+        print(f"[WARN] Could not read current target from {yaml_file_path}. File might be missing, malformed, or annotation not set.")
+        return None
 
 
 def detect_attack(pod_history):
-    """Detect if current pod count jump from a recent minimum in the history window exceeds the threshold."""
-    if len(pod_history) < 2:  # Need at least one value 
+    """Detect if current pod count jump exceeds the threshold."""
+    if len(pod_history) < 2:
         return False
-
-    min_val_in_past_window = min(pod_history[:-1])
+    # Consider the pod history relevant for an attack detection window
+    # Using min over the whole window might be too sensitive if normal scale-downs occur.
+    # For this implementation, we stick to the original logic: min over the history window.
+    min_pods_in_window = min(pod_history)
     current_pods = pod_history[-1]
-
-    increase = current_pods - min_val_in_past_window
-
-    if increase >= CHANGE_THRESHOLD:
-        # If the current pod count has increased by 3(or more) to the minimum, its the YoYo Attack
-
-        print(f"Debug: Attack check: Current: {current_pods}, Min in past window ({len(pod_history)-1} values): {min_val_in_past_window}, Increase: {increase}, Threshold: {CHANGE_THRESHOLD}")
-        return True
-    return False
+    change = current_pods - min_pods_in_window
+    detected = change >= CHANGE_THRESHOLD
+    if detected:
+        print(f"[DEBUG] Attack detection: current_pods={current_pods}, min_pods_in_window={min_pods_in_window}, change={change}, threshold={CHANGE_THRESHOLD}")
+    return detected
 
 
 def main():
     pod_history = []
-    current_target = read_current_target() or DEFAULT_TARGET_VALUE
-    last_attack_timestamp = time.time() # Initialize to current time
+    
+    # Initialize current_target_value
+    initial_target_str = get_current_autoscaling_target_from_yaml(YAML_FILE)
+    if initial_target_str is not None:
+        try:
+            current_target_value = int(initial_target_str)
+            print(f"[INFO] Initial target read from YAML: {current_target_value}")
+            # Check if current YAML settings match default, otherwise, we might be in a manually set state.
+            # For simplicity, we'll use this target as the base if an attack occurs.
+        except ValueError:
+            print(f"[WARN] Invalid target value '{initial_target_str}' in YAML. Applying and using default target from DEFAULT_KPA_SETTINGS.")
+            current_target_value = int(DEFAULT_KPA_SETTINGS['autoscaling.knative.dev/target'])
+            print(f"[INFO] Applying default KPA settings due to invalid initial target.")
+            modify_and_apply_yaml(DEFAULT_KPA_SETTINGS)
+            time.sleep(SLEEP_AFTER_UPDATE)
+    else:
+        print("[INFO] No initial target found in YAML or YAML not readable. Applying and using default target from DEFAULT_KPA_SETTINGS.")
+        current_target_value = int(DEFAULT_KPA_SETTINGS['autoscaling.knative.dev/target'])
+        modify_and_apply_yaml(DEFAULT_KPA_SETTINGS) # Ensure a known state
+        time.sleep(SLEEP_AFTER_UPDATE)
 
-    print(f"Starting Yo-Yo attack mitigation for {SERVICE_NAME} in namespace {NAMESPACE}.")
-    print(f"Initial autoscaling target: {current_target}")
-    print(f"Configuration will be reset to defaults after {RESET_TIME_NO_ATTACK / 60} minutes without attacks.")
-    print(f"Monitoring YAML file: {YAML_FILE}")
-
+    in_defense_mode = False
+    defense_activation_time = 0
 
     while True:
+        print(f"--- Checking @ {time.strftime('%Y-%m-%d %H:%M:%S')} ---")
         current_pod_count = get_pod_count()
-        print(f"Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}, Current pod count: {current_pod_count}, Target: {current_target}")
+        print(f"Current pod count: {current_pod_count}, Current KPA target: {current_target_value}, Defense mode: {in_defense_mode}")
 
         pod_history.append(current_pod_count)
         if len(pod_history) > HISTORY_WINDOW:
             pod_history.pop(0)
+        print(f"Pod history (last {HISTORY_WINDOW}): {pod_history}")
 
+        # 1. Check for cooldown expiry if in defense mode
+        if in_defense_mode:
+            if (time.time() - defense_activation_time) >= COOLDOWN_PERIOD:
+                print(f"[INFO] Cooldown period of {COOLDOWN_PERIOD // 3600} hours ended ({COOLDOWN_PERIOD}s). No new attacks detected during this time.")
+                print("[INFO] Reverting to default autoscaling configuration.")
+                modify_and_apply_yaml(DEFAULT_KPA_SETTINGS)
+                current_target_value = int(DEFAULT_KPA_SETTINGS['autoscaling.knative.dev/target'])
+                in_defense_mode = False
+                defense_activation_time = 0
+                pod_history = [] # Reset history as config changed significantly
+                print(f"[INFO] System reverted to default. New KPA target: {current_target_value}. Defense mode deactivated.")
+                time.sleep(SLEEP_AFTER_UPDATE)
+                time.sleep(CHECK_INTERVAL) # Wait for the next full interval
+                continue 
+            else:
+                remaining_cooldown = COOLDOWN_PERIOD - (time.time() - defense_activation_time)
+                print(f"[INFO] In defense mode. Cooldown remaining: {remaining_cooldown:.0f} seconds.")
+
+        # 2. Detect attack
         if detect_attack(pod_history):
-            print(f"Yo-Yo attack detected! Pods increased from {min(pod_history[:-1]) if len(pod_history) >=2 else 'N/A'} to {current_pod_count} (recent min vs current).") # Updated log message
-            last_attack_timestamp = time.time() # Update last attack time
+            print(f"ALERT! Detected potential Yo-Yo attack. Pod history leading to detection: {pod_history}.")
             
             increment = random.randint(INCREMENT_MIN, INCREMENT_MAX)
-            new_target = current_target + increment
+            new_target = current_target_value + increment
             
-            print(f"Increasing autoscaling target from {current_target} to {new_target}...")
-            update_autoscaling_target(new_target)
-            current_target = new_target
+            print(f"[MITIGATION] Previous KPA target: {current_target_value}. Increment: {increment}. New proposed KPA target: {new_target}")
+
+            # Prepare the full set of annotations for mitigation
+            # Start with default KPA settings, then override for mitigation
+            mitigation_annotations_to_apply = DEFAULT_KPA_SETTINGS.copy()
+            mitigation_annotations_to_apply['autoscaling.knative.dev/target'] = str(new_target)
+            mitigation_annotations_to_apply.update(MITIGATION_SPECIFIC_SETTINGS) # Add/override with specific mitigation settings
+
+            print(f"[MITIGATION] Applying comprehensive mitigation KPA settings: {mitigation_annotations_to_apply}")
+            modify_and_apply_yaml(mitigation_annotations_to_apply)
             
-            pod_history = [current_pod_count] 
+            current_target_value = new_target # Update the tracked target value
             
-            print(f"Sleeping for {SLEEP_AFTER_UPDATE} seconds after update.")
+            if not in_defense_mode:
+                print("[INFO] Defense mode ACTIVATED.")
+                in_defense_mode = True
+            else:
+                print("[INFO] Defense mode RE-ACTIVATED (attack detected while already in defense mode).")
+
+            defense_activation_time = time.time() # Start/reset cooldown timer
+            pod_history = [current_pod_count] # Reset history after action to observe effect of new settings
+            
+            print(f"[INFO] Mitigation applied. New KPA target: {current_target_value}. Cooldown timer (re)started for {COOLDOWN_PERIOD // 3600} hours.")
             time.sleep(SLEEP_AFTER_UPDATE)
         else:
-            # No attack detected, check if it's time to reset
-            if (time.time() - last_attack_timestamp) > RESET_TIME_NO_ATTACK:
-                print(f"No Yo-Yo attacks detected for {RESET_TIME_NO_ATTACK / 60:.2f} minutes.") 
-                
-                print("Attempting to reset to default autoscaling configuration...")
-                reset_to_default_autoscaling_config()
-                current_target = DEFAULT_TARGET_VALUE # Reset current target tracker
-                last_attack_timestamp = time.time() # Reset the timer for the next 120-minute window
-                print(f"Autoscaling configuration reset. New target: {current_target}.")
-                pod_history = [get_pod_count()] # fresh reading for history
-            else:
-                # This else block is for when no attack is detected AND it's not time to reset
-                pass 
+            print("No Yo-Yo attack pattern detected in current window.")
 
         time.sleep(CHECK_INTERVAL)
 
+
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\nScript terminated by user.")
-    except Exception as e:
-        print(f"An unexpected critical error occurred in main: {e}")
+    main()
