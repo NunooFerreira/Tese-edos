@@ -70,10 +70,10 @@ async def main():
         ) as session:
             tasks = [asyncio.create_task(worker(session, queue)) for _ in range(CONCURRENCY)]
 
-            # Log start
+            #Debug
             await queue.put(f"Baseline simulation started at {datetime.now().isoformat()}\n")
 
-            # Run for RUN_DURATION seconds
+            # Run for 12 hours seconds
             try:
                 while time.time() - start_time < RUN_DURATION:
                     elapsed = int(time.time() - start_time)
@@ -88,7 +88,7 @@ async def main():
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
 
-            # Log stop
+            #Parar a simulaçao para Debug
             await queue.put(f"Simulation stopped at {datetime.now().isoformat()}\n")
 
         # Signal logger to exit
